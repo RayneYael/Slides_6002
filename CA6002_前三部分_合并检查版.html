@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CA6002 · 前三部分合并检查版</title>
+  <style>
+    * { box-sizing: border-box; }
+    html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; background: #17191e; }
+    .deck-frame { position: fixed; inset: 0; width: 100%; height: 100%; border: 0; visibility: hidden; opacity: 0; pointer-events: none; }
+    .deck-frame.active { visibility: visible; opacity: 1; }
+    .section-label { position: fixed; top: 12px; left: 50%; z-index: 20; transform: translateX(-50%); padding: 7px 12px; color: #657083; background: rgba(245,242,233,.94); border: 1px solid #c8c5bc; font: 600 11px/1 Arial,sans-serif; letter-spacing: .08em; text-transform: uppercase; white-space: nowrap; }
+    .controls { position: fixed; left: 50%; bottom: 18px; z-index: 30; display: flex; align-items: center; gap: 8px; transform: translateX(-50%); padding: 7px 9px; color: #172238; background: rgba(245,242,233,.96); border: 1px solid #c8c5bc; font: 13px/1 Arial,sans-serif; }
+    .controls button { min-width: 34px; padding: 4px 8px; border: 0; color: #172238; background: transparent; font: 18px/1 Arial,sans-serif; cursor: pointer; }
+    .controls button:hover { color: #1759c7; }
+    .counter { min-width: 54px; color: #657083; text-align: center; font-variant-numeric: tabular-nums; }
+    .progress { position: fixed; right: 0; bottom: 0; left: 0; z-index: 25; height: 3px; background: rgba(245,242,233,.28); }
+    .progress span { display: block; width: 0; height: 100%; background: #1759c7; transition: width .18s ease; }
+    .click-zone { position: fixed; top: 0; bottom: 0; z-index: 10; width: 16%; cursor: pointer; }
+    .click-zone.prev { left: 0; }
+    .click-zone.next { right: 0; }
+  </style>
+</head>
+<body>
+  <iframe class="deck-frame" title="Dataset introduction" src="3_Exploration%20of%20Dataset/01_Exploration_of_Dataset_%E6%95%B0%E6%8D%AE%E9%9B%86%E4%BB%8B%E7%BB%8D%E4%B8%8E%E9%A2%84%E5%A4%84%E7%90%86_%E7%B2%BE%E7%AE%80%E7%89%88.html#0"></iframe>
+  <iframe class="deck-frame" title="Temporal exploration" src="3_Exploration%20of%20Dataset/02_A_Group_Temporal_CO2_Cobalt_Grid%20_%E6%97%B6%E5%9F%9F%E5%8F%AF%E8%A7%86%E5%8C%96_%E7%B2%BE%E7%AE%80%E7%89%88.html#0"></iframe>
+  <iframe class="deck-frame" title="Spatial exploration" src="3_Exploration%20of%20Dataset/03_Exploration_of_Dataset_%E7%A9%BA%E9%97%B4%E5%9F%9F%E5%8F%AF%E8%A7%86%E5%8C%96_final_v12_%E7%B2%BE%E7%AE%80%E7%89%88.html#0"></iframe>
+  <iframe class="deck-frame" title="Algorithm and evaluation" src="4_Design%20of%20AI%20Algorithm%2BModel%20Evaluation/%E6%98%8C%E6%98%8E%2B%E6%80%9D%E5%AE%87_0829_K2_Cobalt_Grid_presentation_v2_%E7%B2%BE%E7%AE%80%E7%89%88.html#0"></iframe>
+  <div class="section-label" id="sectionLabel"></div>
+  <div class="click-zone prev" id="leftZone" aria-label="Previous slide"></div>
+  <div class="click-zone next" id="rightZone" aria-label="Next slide"></div>
+  <div class="controls"><button id="prev" aria-label="Previous slide">←</button><span class="counter" id="counter"></span><button id="next" aria-label="Next slide">→</button><button id="fullscreen" aria-label="Fullscreen">⛶</button></div>
+  <div class="progress" aria-hidden="true"><span id="progress"></span></div>
+  <script>
+    const groups = [
+      { count: 2, label: "Exploration · Dataset" },
+      { count: 4, label: "Exploration · Temporal" },
+      { count: 3, label: "Exploration · Spatial" },
+      { count: 9, label: "Algorithm + Model Evaluation" }
+    ];
+    const frames = [...document.querySelectorAll(".deck-frame")];
+    const total = groups.reduce((sum, group) => sum + group.count, 0);
+    const loaded = groups.map(() => false);
+    const childIndex = groups.map(() => 0);
+    const pending = groups.map(() => 0);
+    let current = Math.max(0, Math.min(Number(location.hash.slice(1)) || 0, total - 1));
+
+    function locate(globalIndex) {
+      let offset = 0;
+      for (let group = 0; group < groups.length; group += 1) {
+        if (globalIndex < offset + groups[group].count) return { group, slide: globalIndex - offset };
+        offset += groups[group].count;
+      }
+      return { group: groups.length - 1, slide: groups.at(-1).count - 1 };
+    }
+    function sendKey(group, key) {
+      const documentInside = frames[group].contentDocument;
+      if (!documentInside) return false;
+      documentInside.dispatchEvent(new KeyboardEvent("keydown", { key, bubbles: true, cancelable: true }));
+      return true;
+    }
+    function setChildSlide(group, target) {
+      pending[group] = target;
+      if (!loaded[group]) return;
+      const delta = target - childIndex[group];
+      const key = delta >= 0 ? "ArrowRight" : "ArrowLeft";
+      for (let step = 0; step < Math.abs(delta); step += 1) sendKey(group, key);
+      childIndex[group] = target;
+    }
+    function show(globalIndex) {
+      current = Math.max(0, Math.min(globalIndex, total - 1));
+      const locationInDeck = locate(current);
+      frames.forEach((frame, index) => frame.classList.toggle("active", index === locationInDeck.group));
+      setChildSlide(locationInDeck.group, locationInDeck.slide);
+      document.getElementById("sectionLabel").textContent = groups[locationInDeck.group].label;
+      document.getElementById("counter").textContent = `${String(current + 1).padStart(2, "0")} / ${total}`;
+      document.getElementById("progress").style.width = `${(current + 1) / total * 100}%`;
+      history.replaceState(null, "", "#" + current);
+    }
+    frames.forEach((frame, group) => frame.addEventListener("load", () => {
+      loaded[group] = true;
+      childIndex[group] = 0;
+      try {
+        const style = frame.contentDocument.createElement("style");
+        style.textContent = ".deck-controls,.progress-track,.edit-tools,.edit-hotzone,.edit-toggle,.save-toast{display:none!important}";
+        frame.contentDocument.head.appendChild(style);
+      } catch (_) {}
+      setChildSlide(group, pending[group]);
+    }));
+    function move(delta) { show(current + delta); }
+    document.getElementById("prev").addEventListener("click", () => move(-1));
+    document.getElementById("next").addEventListener("click", () => move(1));
+    document.getElementById("leftZone").addEventListener("click", () => move(-1));
+    document.getElementById("rightZone").addEventListener("click", () => move(1));
+    document.getElementById("fullscreen").addEventListener("click", () => document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen());
+    document.addEventListener("keydown", event => {
+      if (["ArrowRight", "ArrowDown", "PageDown", " "].includes(event.key)) { event.preventDefault(); move(1); }
+      if (["ArrowLeft", "ArrowUp", "PageUp"].includes(event.key)) { event.preventDefault(); move(-1); }
+      if (event.key === "Home") { event.preventDefault(); show(0); }
+      if (event.key === "End") { event.preventDefault(); show(total - 1); }
+    });
+    show(current);
+  </script>
+</body>
+</html>

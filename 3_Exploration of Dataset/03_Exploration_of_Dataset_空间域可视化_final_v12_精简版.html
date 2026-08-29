@@ -1,0 +1,876 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Exploration of Dataset · Spatial Visualisation · Simplified</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Newsreader:ital,opsz,wght@0,6..72,500;1,6..72,500&display=swap" rel="stylesheet">
+  <style>
+    /* ===========================================
+       THEME
+       =========================================== */
+    :root {
+      --paper: #f5f2e9;
+      --paper-deep: #eae5d9;
+      --ink: #172238;
+      --muted: #657083;
+      --line: #c8c5bc;
+      --blue: #1759c7;
+      --blue-soft: #e4ecfa;
+      --orange: #c95f24;
+      --orange-soft: #f6e5da;
+      --coal: #55483e;
+      --oil: #c95f24;
+      --gas: #287d9b;
+      --stage-bg: #17191e;
+      --slide-bg: var(--paper);
+      --font-display: "Newsreader", Georgia, serif;
+      --font-body: "DM Sans", sans-serif;
+      --ease: cubic-bezier(.16, 1, .3, 1);
+    }
+
+    * { box-sizing: border-box; }
+
+    /* ===========================================
+       FIXED 16:9 STAGE: MANDATORY BASE STYLES
+       =========================================== */
+    html,
+    body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      overflow: hidden;
+      background: var(--stage-bg, #000);
+    }
+
+    .deck-viewport {
+      position: fixed;
+      inset: 0;
+      overflow: hidden;
+      background: var(--stage-bg, #000);
+    }
+
+    .deck-stage {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 1920px;
+      height: 1080px;
+      overflow: hidden;
+      transform-origin: 0 0;
+      background: var(--slide-bg, #fff);
+    }
+
+    .slide {
+      position: absolute;
+      inset: 0;
+      width: 1920px;
+      height: 1080px;
+      overflow: hidden;
+      display: block;
+      visibility: hidden;
+      opacity: 0;
+      pointer-events: none;
+      background: var(--slide-bg, #fff);
+    }
+
+    .slide.active,
+    .slide.visible {
+      visibility: visible;
+      opacity: 1;
+      pointer-events: auto;
+      z-index: 1;
+    }
+
+    img,
+    video,
+    canvas,
+    svg {
+      max-width: 100%;
+      max-height: 100%;
+    }
+
+    .deck-controls {
+      position: fixed;
+      left: 50%;
+      bottom: 22px;
+      transform: translateX(-50%);
+      z-index: 1000;
+    }
+
+    @media print {
+      html,
+      body {
+        width: 1920px;
+        height: auto;
+        overflow: visible;
+        background: #fff;
+      }
+
+      .deck-viewport {
+        position: static;
+        overflow: visible;
+        background: #fff;
+      }
+
+      .deck-stage {
+        position: static;
+        width: auto;
+        height: auto;
+        transform: none !important;
+        background: none;
+      }
+
+      .slide {
+        position: relative;
+        display: block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        pointer-events: auto !important;
+        width: 1920px;
+        height: 1080px;
+        break-after: page;
+        page-break-after: always;
+      }
+
+      .slide:last-child {
+        break-after: auto;
+        page-break-after: auto;
+      }
+
+      .deck-controls,
+      .edit-tools,
+      .edit-hotzone,
+      .notes {
+        display: none !important;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *,
+      *::before,
+      *::after {
+        animation-duration: .01ms !important;
+        transition-duration: .2s !important;
+      }
+    }
+
+    /* ===========================================
+       BASE TYPOGRAPHY AND PAGE SYSTEM
+       =========================================== */
+    body {
+      color: var(--ink);
+      font-family: var(--font-body);
+    }
+
+    .slide-inner {
+      position: absolute;
+      inset: 0;
+      padding: 60px 86px 54px;
+    }
+
+    .topline {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding-bottom: 18px;
+      border-bottom: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 15px;
+      font-weight: 700;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+    }
+
+    .page-mark { color: var(--ink); }
+
+    h1 {
+      max-width: 1580px;
+      margin: 38px 0 0;
+      font-family: var(--font-display);
+      font-size: 72px;
+      font-weight: 500;
+      line-height: 1;
+      letter-spacing: -.025em;
+    }
+
+    .lede {
+      max-width: 1420px;
+      margin: 14px 0 0;
+      color: var(--muted);
+      font-size: 21px;
+      line-height: 1.4;
+    }
+
+    .footer {
+      position: absolute;
+      right: 86px;
+      bottom: 31px;
+      left: 86px;
+      display: flex;
+      justify-content: space-between;
+      color: var(--muted);
+      font-size: 13px;
+      letter-spacing: .04em;
+    }
+
+    /* ===========================================
+       SUBTLE ENTRANCE MOTION
+       =========================================== */
+    .reveal {
+      opacity: 0;
+      transform: translateY(18px);
+      transition: opacity .55s var(--ease), transform .55s var(--ease);
+    }
+
+    .visible .reveal {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .visible .reveal:nth-child(2) { transition-delay: .06s; }
+    .visible .reveal:nth-child(3) { transition-delay: .12s; }
+    .visible .reveal:nth-child(4) { transition-delay: .18s; }
+
+    /* ===========================================
+       SHARED FIGURE LAYOUT
+       =========================================== */
+    .visual-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 3.35fr) minmax(330px, .95fr);
+      gap: 42px;
+      height: 620px;
+      margin-top: 31px;
+    }
+
+    .figure {
+      position: relative;
+      min-width: 0;
+      height: 100%;
+      margin: 0;
+      overflow: hidden;
+      background: #faf8f2;
+      border: 1px solid var(--line);
+    }
+
+    .figure img {
+      display: block;
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+
+    .figure img.missing { opacity: 0; }
+
+    .figure.missing::after {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      padding: 60px;
+      color: var(--muted);
+      font-size: 16px;
+      font-weight: 600;
+      letter-spacing: .1em;
+      text-align: center;
+      text-transform: uppercase;
+      content: "Chart image placeholder · enter edit mode and double-click to replace";
+      pointer-events: none;
+    }
+
+    .insight-rail {
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+      padding: 8px 0 4px 38px;
+      border-left: 1px solid var(--line);
+    }
+
+    .rail-label {
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+    }
+
+    .hero-stat {
+      margin-top: 46px;
+      color: var(--blue);
+    }
+
+    .hero-stat strong {
+      display: block;
+      font-family: var(--font-display);
+      font-size: 78px;
+      font-weight: 500;
+      line-height: .9;
+    }
+
+    .hero-stat span {
+      display: block;
+      margin-top: 12px;
+      color: var(--ink);
+      font-size: 20px;
+      font-weight: 600;
+    }
+
+    .support-stats {
+      display: grid;
+      gap: 0;
+      margin-top: auto;
+      border-top: 1px solid var(--line);
+    }
+
+    .support-stat {
+      padding: 22px 0;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .support-stat strong {
+      display: block;
+      font-family: var(--font-display);
+      font-size: 38px;
+      font-weight: 500;
+      line-height: 1;
+    }
+
+    .support-stat span {
+      display: block;
+      margin-top: 8px;
+      color: var(--muted);
+      font-size: 15px;
+      line-height: 1.35;
+    }
+
+    /* ===========================================
+       SLIDE 2: SCALE VERSUS INTENSITY
+       =========================================== */
+    .contrast-pair {
+      margin-top: 44px;
+    }
+
+    .contrast-item {
+      padding: 0 0 30px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .contrast-item + .contrast-item { padding-top: 30px; }
+
+    .contrast-item small {
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+    }
+
+    .contrast-item strong {
+      display: block;
+      margin-top: 9px;
+      font-family: var(--font-display);
+      font-size: 46px;
+      font-weight: 500;
+      line-height: 1;
+    }
+
+    .contrast-item.total strong { color: var(--blue); }
+    .contrast-item.percap strong { color: var(--orange); }
+
+    .contrast-note {
+      margin-top: auto;
+      font-family: var(--font-display);
+      font-size: 28px;
+      font-style: italic;
+      line-height: 1.3;
+    }
+
+    /* ===========================================
+       SLIDE 3: WIDE FUEL MAP
+       =========================================== */
+    .wide-figure {
+      height: 555px;
+      margin-top: 28px;
+    }
+
+    .fuel-strip {
+      display: grid;
+      grid-template-columns: 1fr 1.5fr 1.2fr;
+      margin-top: 22px;
+      border-top: 1px solid var(--line);
+      border-bottom: 1px solid var(--line);
+    }
+
+    .fuel-item {
+      position: relative;
+      min-height: 82px;
+      padding: 18px 26px 16px 24px;
+    }
+
+    .fuel-item + .fuel-item { border-left: 1px solid var(--line); }
+
+    .fuel-item::before {
+      position: absolute;
+      top: 24px;
+      left: 0;
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: currentColor;
+      content: "";
+    }
+
+    .fuel-item.coal { color: var(--coal); }
+    .fuel-item.oil { color: var(--oil); }
+    .fuel-item.gas { color: var(--gas); }
+
+    .fuel-item strong {
+      display: block;
+      font-size: 16px;
+      font-weight: 700;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+
+    .fuel-item span {
+      display: block;
+      margin-top: 7px;
+      color: var(--ink);
+      font-size: 16px;
+    }
+
+    .fuel-takeaway {
+      margin-top: 17px;
+      color: var(--muted);
+      font-size: 17px;
+      text-align: right;
+    }
+
+    /* ===========================================
+       NOTES, NAVIGATION, AND INLINE EDITING
+       =========================================== */
+    .notes {
+      position: fixed;
+      top: 24px;
+      right: 24px;
+      z-index: 3000;
+      display: none;
+      width: 440px;
+      max-height: 82vh;
+      padding: 22px;
+      overflow: auto;
+      background: #fffdf8;
+      border: 1px solid var(--line);
+      color: var(--ink);
+      box-shadow: 0 18px 60px rgba(0, 0, 0, .2);
+    }
+
+    body.show-notes .active .notes { display: block; }
+
+    .notes h3 {
+      margin: 0 0 12px;
+      font-size: 14px;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+
+    .notes [data-note] { font-size: 15px; line-height: 1.55; }
+
+    .deck-controls {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 7px 11px;
+      background: rgba(245, 242, 233, .95);
+      border: 1px solid var(--line);
+      border-radius: 99px;
+      opacity: .22;
+      transition: opacity .2s ease;
+    }
+
+    .deck-controls:hover { opacity: 1; }
+
+    .deck-controls button,
+    .edit-tools button {
+      border: 0;
+      background: transparent;
+      color: var(--ink);
+      font: 600 14px var(--font-body);
+      cursor: pointer;
+    }
+
+    .counter { min-width: 56px; font-size: 13px; text-align: center; }
+
+    .edit-hotzone {
+      position: fixed;
+      top: 0;
+      left: 0;
+      z-index: 10000;
+      width: 86px;
+      height: 86px;
+      cursor: pointer;
+    }
+
+    .edit-tools {
+      position: fixed;
+      top: 16px;
+      left: 16px;
+      z-index: 10001;
+      display: flex;
+      gap: 6px;
+      padding: 7px 9px;
+      background: rgba(255, 253, 248, .96);
+      border: 1px solid var(--line);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .2s ease;
+    }
+
+    .edit-tools.show,
+    .edit-tools.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .editing [data-editable] {
+      outline: 2px dashed var(--orange);
+      outline-offset: 4px;
+      cursor: text;
+    }
+
+    .editing img[data-image] {
+      outline: 2px dashed var(--blue);
+      outline-offset: -4px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <div class="deck-viewport">
+    <main class="deck-stage" id="deckStage">
+      <!-- ===========================================
+           SLIDE 1: EMISSIONS CONCENTRATION
+           =========================================== -->
+      <section class="slide active" aria-label="Emissions concentration">
+        <div class="slide-inner">
+          <div class="topline reveal">
+            <span data-editable>Exploration · Spatial patterns</span>
+            <span class="page-mark" data-editable>01 / 03</span>
+          </div>
+
+          <h1 class="reveal" data-editable>Global emissions are highly concentrated.</h1>
+          <p class="lede reveal" data-editable>Rectangle area represents each country’s share of 2021 global CO₂; colour groups countries by region.</p>
+
+          <div class="visual-grid reveal">
+            <figure class="figure">
+              <img data-image src="../point1/P1_00_treemap_2021_from_ppt.png" alt="Treemap of 2021 country CO2 emissions by region" onerror="this.classList.add('missing');this.parentElement.classList.add('missing')">
+            </figure>
+            <aside class="insight-rail">
+              <div class="rail-label" data-editable>Concentration</div>
+              <div class="hero-stat"><strong data-editable>59.8%</strong><span data-editable>Asia’s share of global CO₂</span></div>
+              <div class="support-stats">
+                <div class="support-stat"><strong data-editable>31.4%</strong><span data-editable>China alone</span></div>
+                <div class="support-stat"><strong data-editable>81.2%</strong><span data-editable>Top 20 countries combined</span></div>
+              </div>
+            </aside>
+          </div>
+
+          <div class="footer">
+            <span data-editable>2021 · area = share of global CO₂</span>
+            <span data-editable>Prepared by · Shen Ruiting</span>
+          </div>
+
+          <aside class="notes">
+            <h3>Speaker notes</h3>
+            <div data-note contenteditable="true">The treemap is a hierarchical part-to-whole comparison. Area represents each country’s share of 2021 global CO₂, while colour groups countries by region. Asia contributes 59.8% of global emissions, China alone contributes 31.4%, and the Top 20 countries account for 81.2%. The smallest cells are intentionally left unlabelled. The statistics were checked against the final 2021 panel.</div>
+          </aside>
+        </div>
+      </section>
+
+      <!-- ===========================================
+           SLIDE 2: SCALE VERSUS INTENSITY
+           =========================================== -->
+      <section class="slide" aria-label="Total versus per-capita emissions">
+        <div class="slide-inner">
+          <div class="topline reveal">
+            <span data-editable>Exploration · Spatial patterns</span>
+            <span class="page-mark" data-editable>02 / 03</span>
+          </div>
+
+          <h1 class="reveal" data-editable>Scale and intensity tell different stories.</h1>
+          <p class="lede reveal" data-editable>Total CO₂ reflects national scale; per-capita CO₂ reflects emissions intensity.</p>
+
+          <div class="visual-grid reveal">
+            <figure class="figure">
+              <img data-image src="../point1/P1_01_map_bars_total_co2_2021_from_ppt.png" alt="World map comparing total and per-capita carbon dioxide emissions" onerror="this.classList.add('missing');this.parentElement.classList.add('missing')">
+            </figure>
+            <aside class="insight-rail">
+              <div class="rail-label" data-editable>Two measures · two leaders</div>
+              <div class="contrast-pair">
+                <div class="contrast-item total"><small data-editable>Highest total CO₂</small><strong data-editable>China</strong></div>
+                <div class="contrast-item percap"><small data-editable>Highest per capita</small><strong data-editable>Qatar</strong></div>
+              </div>
+              <div class="contrast-note" data-editable>Country comparisons need both measures—not one ranking.</div>
+            </aside>
+          </div>
+
+          <div class="footer">
+            <span data-editable>2021 · land = total CO₂ · bars = CO₂ per person</span>
+            <span data-editable>Prepared by · Shen Ruiting</span>
+          </div>
+
+          <aside class="notes">
+            <h3>Speaker notes</h3>
+            <div data-note contenteditable="true">Land fill represents total CO₂ on a log₁₀ megatonne scale, while 3-D bar height and colour represent CO₂ per person. China leads total emissions, whereas Qatar has the highest per-capita value. Natural Earth 110m polygons match 169 of 213 panel entities but still cover approximately 99.6% of global emissions. Some small islands and territories may therefore be absent from land fill.</div>
+          </aside>
+        </div>
+      </section>
+
+      <!-- ===========================================
+           SLIDE 3: FUEL MIX GEOGRAPHY
+           =========================================== -->
+      <section class="slide" aria-label="Fuel mix geography">
+        <div class="slide-inner">
+          <div class="topline reveal">
+            <span data-editable>Exploration · Spatial patterns</span>
+            <span class="page-mark" data-editable>03 / 03</span>
+          </div>
+
+          <h1 class="reveal" data-editable>Fuel dependence is geographically uneven.</h1>
+          <p class="lede reveal" data-editable>Dominant fuel reveals regional regimes; country shares reveal the underlying mix.</p>
+
+          <figure class="figure wide-figure reveal">
+            <img data-image src="../point3/P3_01_map_dominant_fuel_2021_from_ppt.png" alt="World map of dominant fossil-fuel components and selected country shares" onerror="this.classList.add('missing');this.parentElement.classList.add('missing')">
+          </figure>
+
+          <div class="fuel-strip reveal">
+            <div class="fuel-item coal"><strong data-editable>Coal</strong><span data-editable>Asia</span></div>
+            <div class="fuel-item oil"><strong data-editable>Oil</strong><span data-editable>Africa · Middle East · Americas</span></div>
+            <div class="fuel-item gas"><strong data-editable>Gas</strong><span data-editable>Russia · Central Asia</span></div>
+          </div>
+
+          <div class="fuel-takeaway reveal" data-editable>Dominant fuel does not imply a uniform national mix.</div>
+
+          <div class="footer">
+            <span data-editable>2021 · white = no data or unreliable profile</span>
+            <span data-editable>Prepared by · Shen Ruiting</span>
+          </div>
+
+          <aside class="notes">
+            <h3>Speaker notes</h3>
+            <div data-note contenteditable="true">The categorical choropleth shows each country’s dominant fossil-fuel source in 2021: coal, oil or gas. Pie charts provide the actual three-fuel shares for selected major emitters, preventing the dominant-category map from hiding mixed national profiles. White areas indicate missing or unreliable fuel profiles. The figure compares spatial regimes and fuel structure, not the magnitude of total emissions.</div>
+          </aside>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- Presentation chrome lives outside the fixed slide stage. -->
+  <div class="edit-hotzone" aria-label="Show editing tools"></div>
+  <div class="edit-tools" id="editTools">
+    <button id="editBtn" title="Edit mode (E)">EDIT</button>
+    <button id="notesBtn" title="Speaker notes (N)">NOTES</button>
+    <button id="saveBtn" title="Download edited HTML (Ctrl+S)">SAVE</button>
+  </div>
+
+  <nav class="deck-controls">
+    <button id="prev" aria-label="Previous slide">←</button>
+    <span class="counter" id="counter">01 / 03</span>
+    <button id="next" aria-label="Next slide">→</button>
+    <button id="full" aria-label="Toggle fullscreen">⛶</button>
+  </nav>
+
+  <input id="imagePicker" type="file" accept="image/*" hidden>
+
+  <script>
+    /* ===========================================
+       PRESENTATION CONTROLLER
+       =========================================== */
+    class SlidePresentation {
+      constructor() {
+        this.slides = [...document.querySelectorAll('.slide')];
+        this.stage = document.getElementById('deckStage');
+        this.current = 0;
+        this.touchStartX = null;
+        this.wheelLocked = false;
+        this.scaleStage();
+        this.bindNavigation();
+        this.show(0);
+        window.addEventListener('resize', () => this.scaleStage());
+      }
+
+      scaleStage() {
+        const factor = Math.min(window.innerWidth / 1920, window.innerHeight / 1080);
+        const x = (window.innerWidth - 1920 * factor) / 2;
+        const y = (window.innerHeight - 1080 * factor) / 2;
+        this.stage.style.transform = `translate(${x}px, ${y}px) scale(${factor})`;
+      }
+
+      show(index) {
+        this.current = Math.max(0, Math.min(index, this.slides.length - 1));
+        this.slides.forEach((slide, i) => {
+          slide.classList.toggle('active', i === this.current);
+          slide.classList.toggle('visible', i === this.current);
+        });
+        document.getElementById('counter').textContent = `${String(this.current + 1).padStart(2, '0')} / ${String(this.slides.length).padStart(2, '0')}`;
+        document.body.classList.remove('show-notes');
+      }
+
+      bindNavigation() {
+        document.getElementById('prev').addEventListener('click', () => this.show(this.current - 1));
+        document.getElementById('next').addEventListener('click', () => this.show(this.current + 1));
+        document.getElementById('full').addEventListener('click', () => {
+          document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen();
+        });
+
+        document.addEventListener('keydown', event => {
+          if (event.target.isContentEditable) return;
+          if (['ArrowRight', 'PageDown', ' '].includes(event.key)) {
+            event.preventDefault();
+            this.show(this.current + 1);
+          }
+          if (['ArrowLeft', 'PageUp'].includes(event.key)) {
+            event.preventDefault();
+            this.show(this.current - 1);
+          }
+        });
+
+        document.addEventListener('touchstart', event => {
+          this.touchStartX = event.changedTouches[0].screenX;
+        }, { passive: true });
+        document.addEventListener('touchend', event => {
+          if (this.touchStartX === null) return;
+          const delta = event.changedTouches[0].screenX - this.touchStartX;
+          if (Math.abs(delta) > 55) this.show(this.current + (delta < 0 ? 1 : -1));
+          this.touchStartX = null;
+        }, { passive: true });
+
+        document.addEventListener('wheel', event => {
+          if (this.wheelLocked || Math.abs(event.deltaY) < 25) return;
+          this.wheelLocked = true;
+          this.show(this.current + (event.deltaY > 0 ? 1 : -1));
+          window.setTimeout(() => { this.wheelLocked = false; }, 650);
+        }, { passive: true });
+      }
+    }
+
+    /* ===========================================
+       INLINE TEXT AND IMAGE EDITING
+       =========================================== */
+    class InlineEditor {
+      constructor() {
+        this.isActive = false;
+        this.storageKey = 'spatial-exploration-simplified-v1';
+        this.editables = [...document.querySelectorAll('[data-editable]')];
+        this.imageTarget = null;
+        this.picker = document.getElementById('imagePicker');
+        this.restore();
+        this.bind();
+      }
+
+      toggle() {
+        this.isActive = !this.isActive;
+        document.body.classList.toggle('editing', this.isActive);
+        document.getElementById('editTools').classList.toggle('active', this.isActive);
+        this.editables.forEach(element => {
+          element.contentEditable = this.isActive ? 'true' : 'false';
+        });
+        if (!this.isActive) this.persist();
+      }
+
+      persist() {
+        const content = this.editables.map(element => element.innerHTML);
+        localStorage.setItem(this.storageKey, JSON.stringify(content));
+      }
+
+      restore() {
+        try {
+          const content = JSON.parse(localStorage.getItem(this.storageKey));
+          if (Array.isArray(content) && content.length === this.editables.length) {
+            this.editables.forEach((element, i) => { element.innerHTML = content[i]; });
+          }
+        } catch (error) {
+          console.warn('Saved edits could not be restored.', error);
+        }
+      }
+
+      download() {
+        this.persist();
+        document.body.classList.remove('editing', 'show-notes');
+        this.editables.forEach(element => element.removeAttribute('contenteditable'));
+        const html = '<!doctype html>\n' + document.documentElement.outerHTML;
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(new Blob([html], { type: 'text/html' }));
+        link.download = '03_Exploration_of_Dataset_空间域可视化_精简版_edited.html';
+        link.click();
+        URL.revokeObjectURL(link.href);
+        if (this.isActive) this.toggle();
+      }
+
+      bind() {
+        document.getElementById('editBtn').addEventListener('click', () => this.toggle());
+        document.getElementById('notesBtn').addEventListener('click', () => document.body.classList.toggle('show-notes'));
+        document.getElementById('saveBtn').addEventListener('click', () => this.download());
+        this.editables.forEach(element => element.addEventListener('blur', () => this.persist()));
+
+        document.addEventListener('dblclick', event => {
+          if (!this.isActive || !event.target.matches('img[data-image]')) return;
+          this.imageTarget = event.target;
+          this.picker.click();
+        });
+
+        this.picker.addEventListener('change', () => {
+          const file = this.picker.files[0];
+          if (!file || !this.imageTarget) return;
+          const reader = new FileReader();
+          reader.addEventListener('load', () => {
+            this.imageTarget.src = reader.result;
+            this.imageTarget.classList.remove('missing');
+            this.imageTarget.parentElement.classList.remove('missing');
+          });
+          reader.readAsDataURL(file);
+          this.picker.value = '';
+        });
+
+        document.addEventListener('keydown', event => {
+          if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 's') {
+            event.preventDefault();
+            this.download();
+            return;
+          }
+          if (event.target.isContentEditable) return;
+          if (event.key.toLowerCase() === 'e') this.toggle();
+          if (event.key.toLowerCase() === 'n') document.body.classList.toggle('show-notes');
+        });
+      }
+    }
+
+    const presentation = new SlidePresentation();
+    const editor = new InlineEditor();
+
+    /* Editing tools use a hover grace period so the controls remain clickable. */
+    const hotzone = document.querySelector('.edit-hotzone');
+    const editTools = document.getElementById('editTools');
+    let hideTimeout = null;
+
+    hotzone.addEventListener('mouseenter', () => {
+      clearTimeout(hideTimeout);
+      editTools.classList.add('show');
+    });
+    hotzone.addEventListener('mouseleave', () => {
+      hideTimeout = setTimeout(() => {
+        if (!editor.isActive) editTools.classList.remove('show');
+      }, 400);
+    });
+    hotzone.addEventListener('click', () => editor.toggle());
+    editTools.addEventListener('mouseenter', () => clearTimeout(hideTimeout));
+    editTools.addEventListener('mouseleave', () => {
+      hideTimeout = setTimeout(() => {
+        if (!editor.isActive) editTools.classList.remove('show');
+      }, 400);
+    });
+  </script>
+</body>
+</html>

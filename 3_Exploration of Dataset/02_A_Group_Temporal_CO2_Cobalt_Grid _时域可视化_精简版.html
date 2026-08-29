@@ -1,0 +1,1057 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Group A — Temporal CO₂ Analysis · Simplified</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Hanken+Grotesk:wght@400;600;700&family=Newsreader:ital,opsz,wght@0,6..72,400..500;1,6..72,400..500&display=swap" rel="stylesheet">
+  <style>
+    /* === THEME TOKENS — COBALT GRID === */
+    :root {
+      --paper: #F0EBDE;
+      --paper-2: #E6E0CE;
+      --ink: #1F2BE0;
+      --ink-soft: #5560E5;
+      --grid: rgba(31, 43, 224, 0.10);
+      --ink-faint: rgba(31, 43, 224, 0.18);
+      --font-display: "Newsreader", Georgia, serif;
+      --font-body: "Hanken Grotesk", sans-serif;
+      --font-mono: "DM Mono", ui-monospace, monospace;
+      --stage-bg: #171717;
+      --slide-bg: var(--paper);
+      --ease: cubic-bezier(.16, 1, .3, 1);
+    }
+
+    /* === RESET === */
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    button { font: inherit; }
+
+    /* ===========================================
+       FIXED 16:9 STAGE: MANDATORY BASE STYLES
+       Include this ENTIRE file in every presentation.
+       Slides are authored at 1920×1080 and scaled as a whole.
+       =========================================== */
+
+    /* 1. Lock the browser viewport */
+    html,
+    body {
+        width: 100%;
+        height: 100%;
+        margin: 0;
+        overflow: hidden;
+        background: var(--stage-bg, #000);
+    }
+
+    /* 2. Full-window deck viewport */
+    .deck-viewport {
+        position: fixed;
+        inset: 0;
+        overflow: hidden;
+        background: var(--stage-bg, #000);
+    }
+
+    /* 3. Fixed 16:9 design canvas.
+       JavaScript sets transform: translate(...) scale(...). */
+    .deck-stage {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 1920px;
+        height: 1080px;
+        overflow: hidden;
+        transform-origin: 0 0;
+        background: var(--slide-bg, #fff);
+    }
+
+    /* 4. Slides stack inside the fixed stage.
+       Content must be laid out at 1920×1080, not reflowed per device. */
+    .slide {
+        position: absolute;
+        inset: 0;
+        width: 1920px;
+        height: 1080px;
+        overflow: hidden;
+        display: block;
+        visibility: hidden;
+        opacity: 0;
+        pointer-events: none;
+        background: var(--slide-bg, #fff);
+    }
+
+    .slide.active,
+    .slide.visible {
+        visibility: visible;
+        opacity: 1;
+        pointer-events: auto;
+        z-index: 1;
+    }
+
+    /* 5. Keep media inside authored slide bounds */
+    img,
+    video,
+    canvas,
+    svg {
+        max-width: 100%;
+        max-height: 100%;
+    }
+
+    /* 6. Presentation chrome stays outside the slide design system */
+    .deck-controls {
+        position: fixed;
+        left: 50%;
+        bottom: 22px;
+        transform: translateX(-50%);
+        z-index: 1000;
+    }
+
+    /* 7. Print one fixed-size slide per page */
+    @media print {
+        html,
+        body {
+            width: 1920px;
+            height: auto;
+            overflow: visible;
+            background: #fff;
+        }
+
+        .deck-viewport {
+            position: static;
+            overflow: visible;
+            background: #fff;
+        }
+
+        .deck-stage {
+            position: static;
+            width: auto;
+            height: auto;
+            transform: none !important;
+            background: none;
+        }
+
+        .slide {
+            position: relative;
+            display: block !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+            pointer-events: auto !important;
+            width: 1920px;
+            height: 1080px;
+            break-after: page;
+            page-break-after: always;
+        }
+
+        .slide:last-child {
+            break-after: auto;
+            page-break-after: auto;
+        }
+
+        .deck-controls {
+            display: none !important;
+        }
+    }
+
+    /* 8. Reduced motion */
+    @media (prefers-reduced-motion: reduce) {
+        *,
+        *::before,
+        *::after {
+            animation-duration: 0.01ms !important;
+            transition-duration: 0.2s !important;
+        }
+    }
+
+    /* === PERMANENT GRAPH-PAPER CANVAS === */
+    .slide::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      z-index: 0;
+      pointer-events: none;
+      background-image:
+        linear-gradient(to right, var(--grid) 1px, transparent 1px),
+        linear-gradient(to bottom, var(--grid) 1px, transparent 1px);
+      background-size: 40px 40px;
+    }
+    .slide::after {
+      content: "";
+      position: absolute;
+      left: 70px;
+      right: 70px;
+      top: 28px;
+      bottom: 28px;
+      z-index: 3;
+      pointer-events: none;
+      border-top: 2px solid var(--ink);
+      border-bottom: 2px solid var(--ink);
+    }
+    .frame {
+      position: absolute;
+      inset: 74px 70px 112px;
+      z-index: 2;
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+    }
+
+    /* === UNIVERSAL CHROME === */
+    .page-number,
+    .nav-hint,
+    .responsible {
+      position: absolute;
+      bottom: 58px;
+      z-index: 5;
+      color: var(--ink);
+      font-family: var(--font-mono);
+      font-size: 15px;
+      letter-spacing: .06em;
+    }
+    .page-number { right: 72px; }
+    .nav-hint { left: 72px; opacity: .46; }
+    .responsible { left: 630px; font-family: var(--font-body); font-size: 14px; font-weight: 600; letter-spacing: .11em; text-transform: uppercase; }
+    .topbar {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: end;
+      gap: 40px;
+      padding-bottom: 22px;
+      border-bottom: 2px solid var(--ink);
+    }
+    .topbar h1 {
+      color: var(--ink);
+      font-family: var(--font-display);
+      font-size: 54px;
+      font-weight: 400;
+      line-height: .96;
+      letter-spacing: -.008em;
+      white-space: nowrap;
+    }
+    .lab-tag,
+    .kicker,
+    .axis-note,
+    .mini-label {
+      color: var(--ink);
+      font-family: var(--font-body);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: .16em;
+    }
+    .lab-tag { font-size: 15px; padding-bottom: 5px; white-space: nowrap; }
+    .kicker { font-size: 15px; }
+    .subtitle {
+      margin-top: 17px;
+      color: var(--ink);
+      font-family: var(--font-mono);
+      font-size: 15px;
+      line-height: 1.35;
+      letter-spacing: .04em;
+    }
+
+    /* === REVEAL MOTION === */
+    .slide { transition: opacity 280ms ease; }
+    .reveal {
+      opacity: 0;
+      transform: translateY(18px);
+      transition: opacity 520ms var(--ease), transform 520ms var(--ease);
+    }
+    .slide.visible .reveal { opacity: 1; transform: translateY(0); }
+    .slide.visible .reveal:nth-child(2) { transition-delay: 70ms; }
+    .slide.visible .reveal:nth-child(3) { transition-delay: 140ms; }
+    .slide.visible .reveal:nth-child(4) { transition-delay: 210ms; }
+
+    /* === CHART FOUNDATION === */
+    .chart-shell { min-height: 0; position: relative; }
+    .chart-shell svg { width: 100%; height: 100%; overflow: visible; }
+    .chart-grid { stroke: var(--grid); stroke-width: 1.5; shape-rendering: crispEdges; }
+    .chart-axis { stroke: var(--ink); stroke-width: 1.6; shape-rendering: crispEdges; }
+    .chart-tick {
+      fill: var(--ink);
+      font-family: var(--font-mono);
+      font-size: 15px;
+      letter-spacing: .03em;
+    }
+    .chart-series {
+      fill: none;
+      stroke: var(--ink);
+      stroke-linejoin: round;
+      stroke-linecap: square;
+      opacity: 0;
+      transition: opacity 650ms ease 260ms;
+    }
+    .slide.visible .chart-series { opacity: var(--series-opacity, 1); }
+    .chart-end-label {
+      fill: var(--ink);
+      font-family: var(--font-mono);
+      font-size: 15px;
+      font-weight: 500;
+    }
+    .chart-caption {
+      display: flex;
+      justify-content: space-between;
+      gap: 20px;
+      padding-top: 10px;
+      border-top: 1px solid var(--ink-faint);
+      color: var(--ink);
+      font-family: var(--font-mono);
+      font-size: 13px;
+      letter-spacing: .03em;
+    }
+
+    /* === SLIDE 1 — TWO-SCALE COMPARISON === */
+    .s1-layout {
+      flex: 1;
+      min-height: 0;
+      display: grid;
+      grid-template-columns: minmax(0, 1.78fr) minmax(390px, .72fr);
+      gap: 48px;
+      padding-top: 22px;
+    }
+    .small-multiples {
+      display: grid;
+      grid-template-rows: 1fr 1fr;
+      min-height: 0;
+      gap: 22px;
+    }
+    .mini-chart {
+      min-height: 0;
+      display: grid;
+      grid-template-rows: auto 1fr;
+      border-top: 1px solid var(--ink-faint);
+      padding-top: 10px;
+    }
+    .mini-chart-header { display: flex; align-items: baseline; justify-content: space-between; gap: 24px; }
+    .mini-label { font-size: 14px; }
+    .mini-range { font-family: var(--font-mono); font-size: 14px; color: var(--ink); }
+    .stat-ledger { border-left: 2px solid var(--ink); padding-left: 38px; display: flex; flex-direction: column; }
+    .stat-block { flex: 1; padding: 18px 0 22px; border-bottom: 1px solid var(--ink-faint); }
+    .stat-block:last-of-type { border-bottom: 0; }
+    .stat-value {
+      color: var(--ink);
+      font-family: var(--font-display);
+      font-size: 108px;
+      font-weight: 400;
+      line-height: .9;
+      letter-spacing: -.015em;
+    }
+    .stat-range { margin-top: 12px; font: 500 20px/1.3 var(--font-mono); color: var(--ink); }
+    .stat-note { margin-top: 12px; max-width: 390px; color: var(--ink); font: 400 21px/1.42 var(--font-body); }
+    .key-insight {
+      margin-top: auto;
+      padding-top: 22px;
+      border-top: 2px solid var(--ink);
+      color: var(--ink);
+      font: 400 30px/1.15 var(--font-display);
+    }
+    .key-insight strong { font-family: var(--font-body); font-size: 14px; letter-spacing: .16em; text-transform: uppercase; display: block; margin-bottom: 8px; }
+
+    /* === SLIDE 2 — SIX-COUNTRY TRAJECTORIES === */
+    .s2-layout {
+      flex: 1;
+      min-height: 0;
+      display: grid;
+      grid-template-columns: minmax(0, 1.62fr) minmax(470px, .78fr);
+      gap: 46px;
+      padding-top: 24px;
+    }
+    .country-chart-wrap { min-height: 0; display: grid; grid-template-rows: 1fr auto; }
+    .legend {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px 22px;
+      padding-top: 13px;
+      border-top: 2px solid var(--ink);
+    }
+    .legend-item { display: flex; align-items: center; gap: 11px; color: var(--ink); font: 500 14px/1 var(--font-mono); }
+    .legend-swatch { width: 42px; height: 3px; background: var(--ink); }
+    .dash-1 { background: repeating-linear-gradient(90deg, var(--ink) 0 18px, transparent 18px 26px); }
+    .dash-2 { background: repeating-linear-gradient(90deg, var(--ink) 0 4px, transparent 4px 10px); }
+    .dash-3 { background: repeating-linear-gradient(90deg, var(--ink) 0 12px, transparent 12px 18px, var(--ink) 18px 21px, transparent 21px 28px); }
+    .country-ledger { border-left: 2px solid var(--ink); padding-left: 34px; display: grid; grid-template-rows: repeat(3, 1fr); }
+    .country-row { padding: 14px 0 18px; border-bottom: 1px solid var(--ink-faint); }
+    .country-row:last-child { border-bottom: 0; }
+    .row-title { color: var(--ink); font: 400 33px/1.05 var(--font-display); }
+    .row-value { margin-top: 10px; color: var(--ink); font: 500 18px/1.3 var(--font-mono); }
+    .row-body { margin-top: 9px; color: var(--ink); font: 400 19px/1.38 var(--font-body); }
+
+    /* === SLIDE 3 — MOMENTUM SCATTER === */
+    .s3-layout {
+      flex: 1;
+      min-height: 0;
+      display: grid;
+      grid-template-columns: minmax(0, 1.67fr) minmax(450px, .73fr);
+      gap: 46px;
+      padding-top: 24px;
+    }
+    .scatter-shell { min-height: 0; position: relative; }
+    .scatter-point { stroke: var(--ink); stroke-width: 2; opacity: .47; transition: opacity 500ms ease 250ms; }
+    .scatter-point.rising { fill: var(--ink); }
+    .scatter-point.falling { fill: var(--paper); }
+    .scatter-highlight { fill: var(--paper); stroke: var(--ink); stroke-width: 4; }
+    .scatter-label { fill: var(--ink); font: 500 15px var(--font-mono); paint-order: stroke; stroke: var(--paper); stroke-width: 5px; stroke-linejoin: round; }
+    .read-panel { border-left: 2px solid var(--ink); padding-left: 34px; display: flex; flex-direction: column; }
+    .read-title { color: var(--ink); font: 400 42px/1 var(--font-display); padding-bottom: 16px; border-bottom: 2px solid var(--ink); }
+    .key-row { display: flex; gap: 14px; align-items: center; padding: 17px 0; border-bottom: 1px solid var(--ink-faint); color: var(--ink); font: 600 15px/1.2 var(--font-body); text-transform: uppercase; letter-spacing: .12em; }
+    .key-dot { width: 18px; height: 18px; border: 2px solid var(--ink); }
+    .key-dot.solid { background: var(--ink); }
+    .quadrant-note { padding: 22px 0; border-bottom: 1px solid var(--ink-faint); }
+    .quadrant-note h3 { color: var(--ink); font: 400 30px/1.05 var(--font-display); }
+    .quadrant-note p { margin-top: 8px; color: var(--ink); font: 400 18px/1.4 var(--font-body); }
+    .bridge-note { margin-top: auto; padding-top: 20px; border-top: 2px solid var(--ink); color: var(--ink); font: 400 22px/1.35 var(--font-body); }
+
+    /* === SLIDE 4 — FEATURE HAND-OFF === */
+    .s4-layout {
+      flex: 1;
+      min-height: 0;
+      display: grid;
+      grid-template-columns: minmax(0, 1.25fr) minmax(0, .86fr);
+      gap: 70px;
+      padding-top: 30px;
+    }
+    .feature-list { display: grid; grid-template-rows: repeat(3, 1fr); min-height: 0; }
+    .feature-row {
+      display: grid;
+      grid-template-columns: 92px 1fr;
+      gap: 28px;
+      align-items: center;
+      border-bottom: 1px solid var(--ink-faint);
+    }
+    .feature-row:first-child { border-top: 2px solid var(--ink); }
+    .feature-num { color: var(--ink); font: 400 56px/1 var(--font-display); }
+    .feature-copy h3 { color: var(--ink); font: 400 35px/1.05 var(--font-display); }
+    .feature-copy p { margin-top: 8px; color: var(--ink); font: 400 19px/1.4 var(--font-body); }
+    .model-panel { border-left: 2px solid var(--ink); padding-left: 44px; display: flex; flex-direction: column; min-height: 0; }
+    .model-panel h3 { color: var(--ink); font: 400 40px/1.05 var(--font-display); padding-bottom: 18px; border-bottom: 2px solid var(--ink); }
+    .model-row { display: grid; grid-template-columns: 140px 1fr 42px; align-items: center; gap: 20px; padding: 19px 0; border-bottom: 1px solid var(--ink-faint); }
+    .model-label { color: var(--ink); font: 600 15px/1 var(--font-body); text-transform: uppercase; letter-spacing: .13em; }
+    .pixel-bar { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; height: 28px; }
+    .pixel-cell { background: var(--grid); }
+    .pixel-cell.on { background: var(--ink); }
+    .model-count { color: var(--ink); font: 500 21px/1 var(--font-mono); text-align: right; }
+    .method-note { padding: 16px 0; color: var(--ink); font: 400 17px/1.4 var(--font-body); border-bottom: 1px solid var(--ink-faint); }
+    .method-note strong { font-family: var(--font-mono); font-weight: 500; }
+    .handoff {
+      margin-top: auto;
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 22px;
+      align-items: start;
+      padding-top: 20px;
+      border-top: 2px solid var(--ink);
+    }
+    .handoff-code { color: var(--ink); font: 500 18px/1.2 var(--font-mono); white-space: nowrap; }
+    .handoff p { color: var(--ink); font: 400 18px/1.4 var(--font-body); }
+
+    /* === PIXEL-GLITCH DECORATION === */
+    .glitch-column {
+      position: absolute;
+      right: 0;
+      top: 0;
+      width: 74px;
+      height: 100%;
+      z-index: 1;
+      pointer-events: none;
+      opacity: .48;
+      background: repeating-linear-gradient(90deg, var(--ink) 0 2px, transparent 2px 9px);
+      clip-path: polygon(55% 0, 100% 0, 100% 100%, 0 100%, 0 82%, 28% 82%, 28% 59%, 52% 59%, 52% 34%, 72% 34%, 72% 15%, 55% 15%);
+    }
+    .qr-block {
+      position: absolute;
+      right: 86px;
+      top: 190px;
+      width: 68px;
+      height: 68px;
+      z-index: 5;
+      display: grid;
+      grid-template-columns: repeat(8, 1fr);
+      grid-template-rows: repeat(8, 1fr);
+      gap: 2px;
+      padding: 4px;
+      background: var(--paper);
+      box-shadow: 0 0 0 2px var(--paper);
+    }
+    .qr-block i { display: block; background: transparent; }
+    .qr-block i.on { background: var(--ink); }
+
+    /* === INLINE EDITOR === */
+    .edit-hotzone { position: fixed; top: 0; left: 0; width: 84px; height: 84px; z-index: 10000; cursor: pointer; }
+    .edit-toggle {
+      position: fixed; top: 18px; left: 18px; width: 46px; height: 46px;
+      border: 2px solid var(--ink); border-radius: 0; color: var(--ink); background: var(--paper);
+      opacity: 0; pointer-events: none; transition: opacity .25s ease; z-index: 10001; cursor: pointer;
+    }
+    .edit-toggle.show, .edit-toggle.active { opacity: 1; pointer-events: auto; }
+    .edit-mode [data-editable] { outline: 2px dashed var(--ink-soft); outline-offset: 4px; cursor: text; }
+    .edit-status {
+      position: fixed; top: 18px; left: 78px; z-index: 10001; padding: 10px 14px;
+      color: var(--ink); background: var(--paper); border: 1px solid var(--ink);
+      font: 500 13px/1 var(--font-mono); opacity: 0; pointer-events: none; transition: opacity .2s ease;
+    }
+    .edit-mode .edit-status { opacity: 1; }
+
+    /* === SIMPLIFIED EDITORIAL OVERRIDES === */
+    :root {
+      --paper: #f5f2e9;
+      --paper-2: #eae5d9;
+      --ink: #1759c7;
+      --ink-soft: #4c78bd;
+      --grid: rgba(23, 89, 199, .08);
+      --ink-faint: #c8c5bc;
+      --text: #172238;
+      --muted: #657083;
+      --accent: #c95f24;
+      --font-body: "DM Sans", "Hanken Grotesk", sans-serif;
+    }
+    body { color: var(--text); }
+    .slide::before,
+    .glitch-column,
+    .qr-block { display: none !important; }
+    .slide::after {
+      left: 86px;
+      right: 86px;
+      top: 42px;
+      bottom: 42px;
+      border-color: var(--line, #c8c5bc);
+      border-width: 1px;
+    }
+    .frame { inset: 70px 86px 116px; }
+    .topbar {
+      align-items: start;
+      padding-bottom: 18px;
+      border-bottom: 1px solid #c8c5bc;
+    }
+    .topbar h1 {
+      max-width: 1450px;
+      color: var(--text);
+      font-size: 62px;
+      font-weight: 500;
+      line-height: 1;
+      letter-spacing: -.02em;
+      white-space: normal;
+    }
+    .lab-tag {
+      padding: 8px 0 0;
+      color: var(--muted);
+      font-size: 14px;
+      letter-spacing: .11em;
+    }
+    .subtitle {
+      margin-top: 14px;
+      color: var(--muted);
+      font-family: var(--font-body);
+      font-size: 18px;
+      letter-spacing: 0;
+    }
+    .page-number,
+    .responsible {
+      bottom: 60px;
+      color: var(--muted);
+      font-family: var(--font-body);
+      font-size: 13px;
+      letter-spacing: .04em;
+      text-transform: none;
+    }
+    .page-number { right: 88px; }
+    .responsible { left: 86px; }
+    .nav-hint { display: none; }
+
+    .s1-layout,
+    .s2-layout,
+    .s3-layout,
+    .s4-layout { gap: 54px; padding-top: 30px; }
+    .s1-layout { grid-template-columns: minmax(0, 1.72fr) minmax(360px, .58fr); }
+    .s2-layout { grid-template-columns: minmax(0, 1.64fr) minmax(400px, .58fr); }
+    .s3-layout { grid-template-columns: minmax(0, 1.7fr) minmax(390px, .55fr); }
+    .s4-layout { grid-template-columns: minmax(0, 1.08fr) minmax(0, .92fr); }
+
+    .mini-chart,
+    .legend,
+    .feature-row:first-child,
+    .key-insight,
+    .read-title,
+    .model-panel h3,
+    .handoff { border-color: #c8c5bc; border-width: 1px; }
+    .stat-ledger,
+    .country-ledger,
+    .read-panel,
+    .model-panel {
+      border-color: #c8c5bc;
+      border-width: 1px;
+      padding-left: 34px;
+    }
+    .stat-block,
+    .country-row,
+    .key-row,
+    .quadrant-note,
+    .feature-row,
+    .model-row,
+    .method-note { border-color: #d4d1c8; }
+    .stat-value { color: var(--ink); font-size: 92px; }
+    .stat-range,
+    .row-value,
+    .model-count { color: var(--ink); }
+    .stat-note,
+    .row-body,
+    .quadrant-note p,
+    .feature-copy p,
+    .method-note,
+    .handoff p { color: var(--muted); }
+    .key-insight,
+    .row-title,
+    .read-title,
+    .quadrant-note h3,
+    .feature-copy h3,
+    .model-panel h3 { color: var(--text); }
+    .key-insight { font-size: 28px; }
+    .row-title { font-size: 30px; }
+    .read-title { font-size: 36px; }
+    .feature-row { grid-template-columns: 74px 1fr; gap: 22px; }
+    .feature-num { color: var(--ink); font-size: 48px; }
+    .feature-copy h3 { font-size: 32px; }
+    .model-panel h3 { font-size: 36px; }
+    .pixel-cell { background: #dedbd2; }
+    .pixel-cell.on { background: var(--ink); }
+    .bridge-note {
+      color: var(--text);
+      border-color: #c8c5bc;
+      border-width: 1px;
+      font-size: 20px;
+    }
+    .chart-grid { stroke: rgba(23, 89, 199, .10); }
+    .chart-axis { stroke: #8490a1; stroke-width: 1.2; }
+    .chart-tick { fill: var(--muted); }
+    .chart-caption { color: var(--muted); border-color: #d4d1c8; }
+    .deck-controls { border-color: #c8c5bc; background: var(--paper); color: var(--text); }
+  </style>
+</head>
+<body>
+  <!-- === PRESENTATION STAGE === -->
+  <div class="deck-viewport">
+    <main class="deck-stage" id="deckStage" aria-live="polite">
+      <!-- Slide 1 speaker notes:
+      This slide separates two questions. The upper chart shows the scale of global emissions: the reconstructed total increased from 21.97 to 35.98 gigatonnes, or 63.8 percent. The lower chart divides the same annual total by the population represented in the panel. Global per-capita emissions increased from about 4.00 to 4.53 tonnes per person, or 13.3 percent. Both series show the 2009 and 2020 interruptions, but the comparison makes the main point clear: total emissions grew far faster than emissions per person. Separate small multiples are used instead of a dual-axis chart so the two units cannot be visually confused.
+      Sources: provided CO₂ panel dataset; Our World in Data — CO₂ and Greenhouse Gas Emissions.
+      -->
+      <section class="slide active" aria-label="Slide 1 of 4">
+        <div class="glitch-column"></div>
+        <div class="frame">
+          <header class="topbar reveal">
+            <h1 data-editable>Total CO₂ rose much faster than emissions per person</h1>
+            <div class="lab-tag" data-editable>Group A · Temporal Analysis</div>
+          </header>
+          <p class="subtitle reveal" data-editable>1992–2021 country-panel aggregate · same years, separate scales</p>
+          <div class="s1-layout">
+            <div class="small-multiples reveal">
+              <article class="mini-chart">
+                <div class="mini-chart-header">
+                  <div class="mini-label" data-editable>Global total · Gt CO₂</div>
+                  <div class="mini-range" data-editable>21.97 → 35.98</div>
+                </div>
+                <div id="globalTotalChart" class="chart-shell"></div>
+              </article>
+              <article class="mini-chart">
+                <div class="mini-chart-header">
+                  <div class="mini-label" data-editable>Global per capita · tonnes CO₂ / person</div>
+                  <div class="mini-range" data-editable>4.00 → 4.53</div>
+                </div>
+                <div id="perCapitaChart" class="chart-shell"></div>
+              </article>
+            </div>
+            <aside class="stat-ledger reveal">
+              <div class="stat-block">
+                <div class="stat-value" data-editable>+63.8%</div>
+                <div class="stat-range" data-editable>21.97 → 35.98 Gt</div>
+                <p class="stat-note" data-editable>Total emissions reflect the scale of the whole global economy.</p>
+              </div>
+              <div class="stat-block">
+                <div class="stat-value" data-editable>+13.3%</div>
+                <div class="stat-range" data-editable>4.00 → 4.53 t/person</div>
+                <p class="stat-note" data-editable>Per-person emissions rose much more slowly than the total.</p>
+              </div>
+              <div class="key-insight" data-editable><strong>Key insight</strong>Total growth came mainly from scale, not equal growth per person.</div>
+            </aside>
+          </div>
+        </div>
+        <div class="nav-hint">← / → · SPACE · SWIPE</div>
+        <div class="responsible" data-editable>Responsible: REYIZA RESIBIEKE</div>
+        <div class="page-number">01 / 04</div>
+      </section>
+
+      <!-- Slide 2 speaker notes:
+      To compare trajectory shape rather than size, every country is indexed to 100 in 1992. China and India both rose to slightly more than four times their starting level. In contrast, the United Kingdom fell to 58 percent of its 1992 level and Germany to 70 percent. The United States and Japan show later turning points, peaking in 2005 and 2013 within our sample. These opposite paths are hidden when we only compare 2021 totals.
+      Sources: provided CO₂ panel dataset; Our World in Data — CO₂ and Greenhouse Gas Emissions.
+      -->
+      <section class="slide" aria-label="Slide 2 of 4">
+        <div class="frame">
+          <header class="topbar reveal">
+            <h1 data-editable>A common baseline reveals opposite national paths</h1>
+            <div class="lab-tag" data-editable>1992 = 100</div>
+          </header>
+          <p class="subtitle reveal" data-editable>Total CO₂ indexed to a common baseline · identical vertical scale for all six countries</p>
+          <div class="s2-layout">
+            <div class="country-chart-wrap reveal">
+              <div id="countryIndexChart" class="chart-shell"></div>
+              <div class="legend" aria-label="Country line styles">
+                <div class="legend-item"><span class="legend-swatch"></span>China</div>
+                <div class="legend-item"><span class="legend-swatch" style="opacity:.62"></span>India</div>
+                <div class="legend-item"><span class="legend-swatch dash-1"></span>United States</div>
+                <div class="legend-item"><span class="legend-swatch dash-2"></span>United Kingdom</div>
+                <div class="legend-item"><span class="legend-swatch dash-3"></span>Germany</div>
+                <div class="legend-item"><span class="legend-swatch dash-1" style="opacity:.55"></span>Japan</div>
+              </div>
+            </div>
+            <aside class="country-ledger reveal">
+              <div class="country-row">
+                <h3 class="row-title" data-editable>Still rising</h3>
+                <div class="row-value" data-editable>China 4.13× · India 4.08×</div>
+                <p class="row-body" data-editable>Both reached their sample-period peak in 2021.</p>
+              </div>
+              <div class="country-row">
+                <h3 class="row-title" data-editable>Peaked and declining</h3>
+                <div class="row-value" data-editable>UK 0.58× · Germany 0.70×</div>
+                <p class="row-body" data-editable>Long-run direction is the reverse of the aggregate.</p>
+              </div>
+              <div class="country-row">
+                <h3 class="row-title" data-editable>Later turning points</h3>
+                <div class="row-value" data-editable>US: 2005 · Japan: 2013</div>
+                <p class="row-body" data-editable>Their 2021 totals were 18% and 19% below peak.</p>
+              </div>
+            </aside>
+          </div>
+        </div>
+        <div class="nav-hint">← / → · SPACE · SWIPE</div>
+        <div class="responsible" data-editable>Responsible: REYIZA RESIBIEKE</div>
+        <div class="page-number">02 / 04</div>
+      </section>
+
+      <!-- Slide 3 speaker notes:
+      This chart separates long-run direction from recent momentum. The horizontal axis is the annual slope of log total emissions over 1992 to 2021. The vertical axis is the 2013 to 2021 log slope minus the full-period slope, so positive values indicate recent acceleration and negative values indicate slowing. Solid points have a positive long-run per-capita trend; hollow points have a negative trend. Vietnam combines strong long-run growth with further recent acceleration. China, India and South Korea remain on the growth side but have slowed relative to their full-period trend. The United States, United Kingdom and Germany sit on the long-run contraction side.
+      Sources: provided CO₂ panel dataset; Our World in Data — CO₂ and Greenhouse Gas Emissions.
+      -->
+      <section class="slide" aria-label="Slide 3 of 4">
+        <div class="qr-block" aria-hidden="true"></div>
+        <div class="frame">
+          <header class="topbar reveal">
+            <h1 data-editable>Long-term growth and recent momentum are not the same</h1>
+            <div class="lab-tag" data-editable>213-country panel</div>
+          </header>
+          <p class="subtitle reveal" data-editable>x = long-term log trend · y = recent trend minus long-term trend</p>
+          <div class="s3-layout">
+            <div id="momentumScatter" class="scatter-shell reveal"></div>
+            <aside class="read-panel reveal">
+              <h2 class="read-title" data-editable>How to read</h2>
+              <div class="key-row"><span class="key-dot solid"></span><span data-editable>Per-capita trend rising</span></div>
+              <div class="key-row"><span class="key-dot"></span><span data-editable>Per-capita trend falling</span></div>
+              <div class="quadrant-note">
+                <h3 data-editable>Upper-right</h3>
+                <p data-editable>Long-run growth with recent acceleration · Vietnam</p>
+              </div>
+              <div class="quadrant-note">
+                <h3 data-editable>Lower-right</h3>
+                <p data-editable>Still above the long-run baseline, but slowing · China, India, S. Korea</p>
+              </div>
+              <div class="bridge-note" data-editable>Continuous trajectory signals preserve more information than a simple rising-or-falling label.</div>
+            </aside>
+          </div>
+        </div>
+        <div class="nav-hint">← / → · SPACE · SWIPE</div>
+        <div class="responsible" data-editable>Responsible: REYIZA RESIBIEKE</div>
+        <div class="page-number">03 / 04</div>
+      </section>
+
+      <!-- Slide 4 speaker notes:
+      This slide links the time-domain evidence to the current model representation. Direction features describe long-term trend, recent trend and acceleration. Timing features describe volatility, peak timing and post-peak change. A recent per-capita level and four fuel-shift measures complete the eleven-feature profile. Robust scaling and four retained PCA components are part of the current K-means pipeline.
+      Sources: provided CO₂ panel dataset; Our World in Data; provided Group C model specification.
+      -->
+      <section class="slide" aria-label="Slide 4 of 4">
+        <div class="glitch-column"></div>
+        <div class="frame">
+          <header class="topbar reveal">
+            <h1 data-editable>Temporal evidence becomes direction and timing features</h1>
+            <div class="lab-tag" data-editable>Exploration → Model</div>
+          </header>
+          <p class="subtitle reveal" data-editable>The same temporal contrasts are encoded in the current eleven-feature representation</p>
+          <div class="s4-layout">
+            <div class="feature-list reveal">
+              <div class="feature-row">
+                <div class="feature-num">01</div>
+                <div class="feature-copy"><h3 data-editable>Direction</h3><p data-editable>Long-term trend, recent trend and acceleration distinguish persistent growth from slowing or reversal.</p></div>
+              </div>
+              <div class="feature-row">
+                <div class="feature-num">02</div>
+                <div class="feature-copy"><h3 data-editable>Timing</h3><p data-editable>Volatility, peak timing and post-peak change describe when and how trajectories turn.</p></div>
+              </div>
+              <div class="feature-row">
+                <div class="feature-num">03</div>
+                <div class="feature-copy"><h3 data-editable>Recent level</h3><p data-editable>Recent log per-capita CO₂ anchors trajectory shape to current emissions intensity.</p></div>
+              </div>
+            </div>
+            <aside class="model-panel reveal">
+              <h3 data-editable>Model representation · 11 features</h3>
+              <div class="model-row"><div class="model-label">Level</div><div class="pixel-bar"><i class="pixel-cell on"></i><i class="pixel-cell"></i><i class="pixel-cell"></i><i class="pixel-cell"></i></div><div class="model-count">1</div></div>
+              <div class="model-row"><div class="model-label">Direction</div><div class="pixel-bar"><i class="pixel-cell on"></i><i class="pixel-cell on"></i><i class="pixel-cell on"></i><i class="pixel-cell"></i></div><div class="model-count">3</div></div>
+              <div class="model-row"><div class="model-label">Timing</div><div class="pixel-bar"><i class="pixel-cell on"></i><i class="pixel-cell on"></i><i class="pixel-cell on"></i><i class="pixel-cell"></i></div><div class="model-count">3</div></div>
+              <div class="model-row"><div class="model-label">Fuel shift</div><div class="pixel-bar"><i class="pixel-cell on"></i><i class="pixel-cell on"></i><i class="pixel-cell on"></i><i class="pixel-cell on"></i></div><div class="model-count">4</div></div>
+              <p class="method-note" data-editable><strong>RobustScaler</strong> · limits the influence of extreme feature values</p>
+              <p class="method-note" data-editable><strong>PCA + K-means</strong> · four retained components enter the clustering step</p>
+              <div class="handoff"><div class="handoff-code">TIME → SPACE → MODEL</div><p data-editable>Temporal direction and timing join current level and fuel-shift evidence in one comparable country profile.</p></div>
+            </aside>
+          </div>
+        </div>
+        <div class="nav-hint">← / → · SPACE · SWIPE</div>
+        <div class="responsible" data-editable>Responsible: REYIZA RESIBIEKE</div>
+        <div class="page-number">04 / 04</div>
+      </section>
+    </main>
+  </div>
+
+  <!-- === INLINE EDITING CONTROLS === -->
+  <div class="edit-hotzone" aria-hidden="true"></div>
+  <button class="edit-toggle" id="editToggle" title="Edit mode (E)" aria-label="Toggle edit mode">E</button>
+  <div class="edit-status">EDIT MODE · CTRL+S DOWNLOADS A COPY</div>
+
+  <script>
+    /* === EMBEDDED SOURCE DATA === */
+    const CHARTS = [{"file":"ppt/slides/charts/chart1.xml","series":[{"name":"Global CO₂","x":[1992.0,1993.0,1994.0,1995.0,1996.0,1997.0,1998.0,1999.0,2000.0,2001.0,2002.0,2003.0,2004.0,2005.0,2006.0,2007.0,2008.0,2009.0,2010.0,2011.0,2012.0,2013.0,2014.0,2015.0,2016.0,2017.0,2018.0,2019.0,2020.0,2021.0],"y":[21.966375,22.192423,22.389045999999997,22.899369,23.564967,23.677031,23.549394,24.064351,24.723152000000002,24.909396,25.462415,26.816989999999997,27.699936,28.653286,29.597059,30.444185,30.984118,30.490850000000002,32.237296,33.365638,33.8528,34.157661,34.342718999999995,34.242623,34.21496,34.765472,35.489581,35.838605,34.310228,35.978968]}]},{"file":"ppt/slides/charts/chart2.xml","series":[{"name":"Global CO₂ per capita","x":[1992.0,1993.0,1994.0,1995.0,1996.0,1997.0,1998.0,1999.0,2000.0,2001.0,2002.0,2003.0,2004.0,2005.0,2006.0,2007.0,2008.0,2009.0,2010.0,2011.0,2012.0,2013.0,2014.0,2015.0,2016.0,2017.0,2018.0,2019.0,2020.0,2021.0],"y":[3.9977275292526775,3.9769853691565102,3.9528471651418537,3.983082746915659,4.040486173265834,4.003010018841139,3.926813206251527,3.957908734817631,4.0117042516594195,3.9881097569077,4.023352780137432,4.182801803605032,4.265314222184072,4.3560629216164335,4.44250277241933,4.511532053001137,4.533012669144708,4.403951048117723,4.597121840671677,4.698276657212752,4.707060687848768,4.6903968880892,4.6583757356434985,4.589478076126501,4.532290695164996,4.552708377594584,4.596796198318398,4.593599279866632,4.355459796242355,4.52854950861953]}]},{"file":"ppt/slides/charts/chart3.xml","series":[{"name":"China","x":[1992.0,1993.0,1994.0,1995.0,1996.0,1997.0,1998.0,1999.0,2000.0,2001.0,2002.0,2003.0,2004.0,2005.0,2006.0,2007.0,2008.0,2009.0,2010.0,2011.0,2012.0,2013.0,2014.0,2015.0,2016.0,2017.0,2018.0,2019.0,2020.0,2021.0],"y":[100.0,106.69991103105127,113.27581472491022,122.69649140149895,128.11935019715958,128.5967436632507,122.84803151624324,129.97334592811455,133.40985395179567,136.35000311208256,150.04561946918852,177.0317688711195,190.78753995364826,215.35578426311375,237.47697974217314,255.36149584994635,274.3174104544007,288.56295010782446,315.23741528728186,348.5588494813806,357.60798011196175,364.0174056947449,365.24964394114136,360.9298170461577,356.90735879383004,366.1278736421251,378.8242918181519,392.2510974667648,398.9514478506494,413.1527959315927]},{"name":"India","x":[1992.0,1993.0,1994.0,1995.0,1996.0,1997.0,1998.0,1999.0,2000.0,2001.0,2002.0,2003.0,2004.0,2005.0,2006.0,2007.0,2008.0,2009.0,2010.0,2011.0,2012.0,2013.0,2014.0,2015.0,2016.0,2017.0,2018.0,2019.0,2020.0,2021.0],"y":[100.0,103.33188897568597,108.9436761546724,116.0287081339713,125.6594204667513,130.90396445659604,133.6208317058881,146.65224343325846,150.59945928132018,152.75577336197637,157.5697563714481,163.00867835172346,173.11099379943366,182.38468533346355,197.3258531881652,212.60817425056143,227.3895981837711,246.15027829313541,256.09834244702665,269.3973672004687,294.00601747876186,304.4345339810565,327.73471828922965,340.51499487354755,358.93406405624455,370.0996606776682,395.96154550336877,398.39477956254274,369.6434674348208,408.2514524948735]},{"name":"United States","x":[1992.0,1993.0,1994.0,1995.0,1996.0,1997.0,1998.0,1999.0,2000.0,2001.0,2002.0,2003.0,2004.0,2005.0,2006.0,2007.0,2008.0,2009.0,2010.0,2011.0,2012.0,2013.0,2014.0,2015.0,2016.0,2017.0,2018.0,2019.0,2020.0,2021.0],"y":[100.0,101.94544264371656,103.53545339916622,104.77076603131633,108.15490937037171,109.54616636768961,110.76684231970137,112.00113154281807,116.30479824359838,113.99544679528148,114.85003195739529,115.98198027717004,118.01151624806663,118.30807315250532,116.73285355402922,118.20455436329476,114.29781589064582,105.9344979599403,109.47097476813991,106.95537743518248,102.94851866369812,105.6898838913487,106.80885615696391,103.66355331478323,101.28586517648013,100.32144698451562,103.52334627720481,101.10338941486106,90.56115641358853,96.9363574748444]},{"name":"United Kingdom","x":[1992.0,1993.0,1994.0,1995.0,1996.0,1997.0,1998.0,1999.0,2000.0,2001.0,2002.0,2003.0,2004.0,2005.0,2006.0,2007.0,2008.0,2009.0,2010.0,2011.0,2012.0,2013.0,2014.0,2015.0,2016.0,2017.0,2018.0,2019.0,2020.0,2021.0],"y":[100.0,97.60325067441728,96.66091882407224,95.33768013929537,98.80692974272792,94.75655304573912,95.73929941432627,94.57839237782186,95.82181238907056,97.32674801211088,94.3465140794078,96.25711042930322,96.56207164820508,96.041397938186,95.62176052377215,94.2274596444196,91.76318439460735,83.20473658153797,86.20164150301592,79.0967691960542,82.08811712127387,80.4267436338714,73.89238960942737,71.13982412948812,67.26154592268028,65.23021119953658,63.94418755030766,61.4221532181744,54.94067485509711,57.65232063531622]},{"name":"Germany","x":[1992.0,1993.0,1994.0,1995.0,1996.0,1997.0,1998.0,1999.0,2000.0,2001.0,2002.0,2003.0,2004.0,2005.0,2006.0,2007.0,2008.0,2009.0,2010.0,2011.0,2012.0,2013.0,2014.0,2015.0,2016.0,2017.0,2018.0,2019.0,2020.0,2021.0],"y":[100.0,98.96045649967404,97.2937623263989,96.95398694536361,98.9918140333215,96.08484688446399,95.25872028254788,92.36464685640725,92.72917818505896,94.40835348192402,92.71453091605257,92.26758291179455,90.41800417550317,89.52163257222547,91.43547362253781,87.28049726446778,88.36253847486859,81.4866771741911,85.2744403092843,82.98833169669012,83.9735152620417,85.79441835901075,81.75486660670225,82.60471765841743,82.31228802719853,80.93080300042085,78.2670630368946,73.09698967676984,66.75616629395212,69.93534571680846]},{"name":"Japan","x":[1992.0,1993.0,1994.0,1995.0,1996.0,1997.0,1998.0,1999.0,2000.0,2001.0,2002.0,2003.0,2004.0,2005.0,2006.0,2007.0,2008.0,2009.0,2010.0,2011.0,2012.0,2013.0,2014.0,2015.0,2016.0,2017.0,2018.0,2019.0,2020.0,2021.0],"y":[100.0,99.47883966535484,104.05834681748499,105.14005652284139,106.230443726424,105.57452694873642,102.20170249112259,105.33130177786627,107.20989507033028,105.99606620080411,108.50445870276506,109.22120304154821,108.81940084426955,109.43958674690802,107.48527802874466,110.50828020492507,104.52871826545318,98.70679754375756,103.03167967440665,107.29309696508753,110.77532595916134,111.60589865702954,107.21576514265978,103.78815334330396,102.08251450078012,100.76038705045029,96.86044711234977,93.75636987921264,88.24547791746849,90.0504826220337]}]},{"file":"ppt/slides/charts/chart4.xml","series":[{"name":"Per-capita trend rising","x":[7.489562053834908,2.881251753620968,2.8789811619356716,0.31216283664773214,1.008280806945121,1.7329387681311033,2.3254819509514046,6.379088373192467,0.5665538258823346,5.286206411210887,2.9699188427483434,3.0258435815177065,0.2397934705202792,4.165200849632698,2.759807806441072,2.639705072972098,0.4012552581958104,1.9837264596161184,5.337158536624035,1.1039588230774893,7.771459226930122,3.011956356460338,1.1241322545182502,3.858278438717681,2.914020212505045,1.917922462345501,0.7758566446341136,3.0272234652452146,0.13351469363915877,1.8863554351757044,2.544163040657197,0.007609520982828009,0.44678616617949685,0.4170441572813467,0.3749818508988255,2.336567879996023,1.7791780915547186,2.664070537951439,4.0379428916819196,1.2917057880853673,5.997707231522709,6.281580515502433,1.1644998179441353,0.8397904693814782,1.2752037174659798,2.4413163060306067,4.941209056485711,0.5269057314732442,3.470566500952066,3.299022960585327,0.501172472884284,1.4198674095771584,3.390337404163567,3.9249942809068386,1.1806708308903968,4.100508881070959,4.160954496796045,3.5985291270404134,2.5395764672006296,3.3522533365316196,0.15471198510213505,1.8989251204987745,9.770117719105453,2.7739931633390205,0.9250806859567001,-0.6305968314321879,3.116951524836064,4.28500930896609,3.215947232566565,5.646312860021667,0.2341852278775442,3.859097311703621,2.591442865571387,6.476047092712549,1.0985457972477444,0.0013849682660250762,3.499439465544251,5.802908961990731,5.408990921524993,2.5263437873694192,6.341693446254343,3.3799868043114816,2.044396946948063,3.3267703778290825,0.0030532870628885043,6.303355123708896,3.5491522713811356,0.05348324287080867,3.1469376027753744,3.1462765840866838,3.7610527582564646,2.734974249830906,3.4133382265968195,3.3750578333671206,0.08918294404952565,1.7919942134816735,0.00430618953387903,0.40942170529261684,0.7221315848409029,-0.01756411925794455,0.4111890093426469,0.4453066538743065,0.37906177866703344,4.065478326203368,4.441275527839863,0.22341093830769054,1.0413003594278938,2.4277592117860047,0.7967977780821769,1.2465658562132251,3.1060268733578775,4.631617212642658,6.209310726304529,2.071656289702349,2.7621693519378256,6.866120765994308,2.9223193293340675,1.8508425441793657,0.1773514786097803,3.520172882195617,2.495024002689134,3.5041408398475906,3.2767084422875916,1.0181068726472378,0.016382571914768072,5.318234333050234,1.3501468197376136,0.39989455658394485,0.022592026485079426,4.419324775143545],"y":[-5.180848908500025,-3.7274461336938542,-0.04753233027376247,-0.08754262863107284,-0.39058845877597526,-2.6540689585070263,0.6912663088938755,-1.1121814335952207,-1.6642545453051154,-3.2538457097593403,-2.4519614866274684,-1.636712599869042,0.007209218979637111,-3.5569401188044907,-1.0447654311540868,-4.568403469532604,-0.9285022579084756,2.9172358761225983,3.190475812248833,2.506390466195508,8.351826015277087,-1.3626335901893045,-0.2848717077378785,-2.4806944644476543,-2.2095632468822566,-0.43931251043405095,2.067787939270901,0.6891828030986358,-0.2405441233202506,-2.2543006287439544,0.14058684333961535,-0.6025750759776128,-4.144600937123901,-13.954338186824694,-0.42634607846210115,1.6212173928459386,-1.574114988748802,-4.503122547542393,-2.243188127102496,-0.08279315297745526,-8.405775264131776,0.37817341038222274,-0.42549481183794124,-0.8536921216846189,0.9055786601397884,0.1255462559195326,0.36824453533721524,-0.054691235665636884,1.4824443283780702,4.136227665154317,1.572725785411822,2.956092001676829,-0.7990309914236855,-2.662183458088351,-1.2273429645835747,-0.5273135981414745,-1.3331069820063322,0.8740000832970565,-2.998379021462903,2.5198257182445936,0.06797170835681624,-2.607762695408561,8.968036659633341,-3.769789809311719,0.6942675713475722,1.3281694087160194,0.39709543890296395,-2.4221471228528326,0.9879060601137564,4.2092487097430995,-0.1350611682458777,4.043046377022145,-2.898400708157417,-2.754093389668508,0.32509605233755345,-0.37466010790349336,-0.8494961651788708,-2.7302311572858105,5.754728703323587,-0.9253349130400472,4.822160288912958,-2.0465417364741945,-1.6501864802011714,-1.1041198384964432,-0.0030532870628885043,-4.71259526277906,2.6669606875763643,-0.13116832822713834,-0.4513038466061854,-5.114435707585969,1.1542537020200654,2.428922143869378,-0.7393273063111572,1.64201240987363,0.2615657377794543,3.2108750742995897,-0.02415391078757936,-0.20206299975434774,-0.5480602164479152,-0.08136371933970954,-0.42343608779262404,0.18152596889888145,-0.09724502003619673,-1.8943652182149822,0.22751809402173429,0.6397858764081555,0.5329339751054383,-1.04793492980634,-1.305681116953479,-1.9167081064864364,-2.09169929165406,-1.2097570897937757,-2.1965187735104488,-1.9287267547768803,8.723332563546247,-1.5105201917258713,-2.766381465042793,2.7906786043264242,0.29308838006536037,-6.778570279833548,-2.1506260033109,-0.8803326786363064,-1.001924015510094,-0.2640478637983159,0.04968953311705062,-0.37774152764561997,-1.3606876221342727,0.5401217064643824,0.011471258053826146,4.595475723427841]},{"name":"Per-capita trend falling","x":[0.014146604418732977,3.076994196461292,0.1214887870962922,1.203357617835768,0.10813133068292263,-0.20517054004708157,0.7184955121532177,3.451604962837008,-0.38782627651831847,-1.15162270184649,0.8573661133699173,0.11350711907687466,-1.0008761447909271,0.45528892001898397,0.24150318659274744,0.5970322511254709,-1.193177000255339,1.2347912966132621,-2.7517397648974007,0.4367474396934986,-0.2639491822124738,-1.0757491448068153,0.028146202540580107,0.17013386517224413,-1.3940348988179985,-1.01330011103456,0.006660925709530189,-1.0876544491314581,-1.2571950967773269,-0.10392558298819951,0.7540868561727422,-1.2269733299444199,-0.02906173346255696,0.8960155531057177,-1.1933802412874304,-0.6469853655378648,-0.2686888206845668,2.4667731670068007,2.964741687580839,-1.113672630704694,1.0167606153907198,0.8134982157010013,-0.23415589448379012,-0.27047095265819315,0.10327069607351685,1.1590517186387683,-1.1983386335508714,1.257627609833259,-0.13713572618315734,-2.5393759252773305,-0.23014365117797567,-0.5545148290898552,0.7720752416657523,2.2178165350320604,-1.7561772856451785,-0.6861306164812511,0.47391903949426906,-0.4055534075753378,-0.7376188928864506,4.880091815135581,-1.8049504088482302,0.115333536608201,-1.1690008981173394,-0.33365914717791584,0.4221153762571104,1.1362614183319402,-0.31659326336099186,0.9233089519792671,-1.5710868692382611,-0.6882114344120965,-1.4693997555523162,-2.379375081727338,4.922723040358335,-0.20500586922649072,0.06620978494832036,0.6423293910611192,-1.639654628453498],"y":[-0.5130361466139494,-7.933108367428007,-0.39090130321253913,-1.1495763135896506,-0.39802453191775694,1.590997235810152,1.1144190290774472,-1.0384926403492978,-0.03471120861498972,0.27572987110897684,0.7047377163366861,-0.7468803430674682,-0.5594398716527424,-1.0468837532553272,2.3568625889454036,-0.14656221605405856,-0.23096200375982145,-0.37643991422160394,-1.3658627043966596,0.6506385048205842,1.1961399734086895,-6.9432464882925355,-0.01894696136560612,1.1951709008235913,-1.9695285790726216,-1.0229229446563732,0.24994029305314813,-1.7759995351093767,-3.178426163844329,0.1580166635550332,-4.102817179498163,2.5449274421375963,-0.3692530166171276,-1.669946725208054,-0.4034673792126162,-0.21544619779244478,-2.5595285541346984,-4.545569587600511,-1.332824524092666,1.1553070770387335,-0.8366525558617373,-2.5593488081036333,-0.1526493487062818,-1.6309909502502715,-1.6799938572277595,3.441920915830883,-1.9282183287310448,-2.6622998598749748,0.1956179913460595,4.195463617167592,0.2871871081498908,-1.531786310948184,-0.9148758479174159,-0.3191243658335152,10.403843845712723,0.16961504659518345,-1.6282102227218709,0.5827068822341555,-1.3712613784786414,-3.0418076881386407,1.3602422997405277,0.22131804832207624,0.713384649896488,-0.7230977567569055,-1.0034545604066034,0.7918137779537382,-1.4192469472467109,-2.596659621763587,-0.5271050294383302,-1.425071434422199,1.1415053052349065,-1.042927039003278,-5.476126257006356,0.8653315132518031,-10.83334629030924,-11.196448909958622,-1.1158190713472942]},{"name":"CHN","x":[5.4971829011426285],"y":[-3.835220635335647]},{"name":"IND","x":[5.168576615462184],"y":[-1.925207574550825]},{"name":"KOR","x":[2.415050661791495],"y":[-2.7262088818794274]},{"name":"GBR","x":[-1.8513152655463538],"y":[-2.4129103346293523]},{"name":"USA","x":[-0.30957369933567863],"y":[-1.1385254842659587]},{"name":"VNM","x":[9.11178261311973],"y":[0.997224869088706]}]}];
+    const NS = 'http://www.w3.org/2000/svg';
+    const INK = '#1F2BE0';
+    const PAPER = '#F0EBDE';
+
+    /* === SVG CHART HELPERS === */
+    function svgEl(name, attrs, text) {
+      const el = document.createElementNS(NS, name);
+      Object.entries(attrs || {}).forEach(function(entry) { el.setAttribute(entry[0], entry[1]); });
+      if (text !== undefined) el.textContent = text;
+      return el;
+    }
+
+    function lineChart(targetId, series, options) {
+      const target = document.getElementById(targetId);
+      const W = 1000, H = options.height || 300;
+      const m = { l: 72, r: options.endLabels ? 88 : 24, t: 20, b: 44 };
+      const iw = W - m.l - m.r, ih = H - m.t - m.b;
+      const sx = function(v) { return m.l + (v - options.xMin) / (options.xMax - options.xMin) * iw; };
+      const sy = function(v) { return m.t + (options.yMax - v) / (options.yMax - options.yMin) * ih; };
+      const svg = svgEl('svg', { viewBox: '0 0 ' + W + ' ' + H, role: 'img', 'aria-label': options.aria });
+
+      options.yTicks.forEach(function(tick) {
+        const y = sy(tick);
+        svg.appendChild(svgEl('line', { x1: m.l, y1: y, x2: W - m.r, y2: y, class: 'chart-grid' }));
+        svg.appendChild(svgEl('text', { x: m.l - 12, y: y + 5, class: 'chart-tick', 'text-anchor': 'end' }, options.yFormat ? options.yFormat(tick) : String(tick)));
+      });
+      options.xTicks.forEach(function(tick) {
+        const x = sx(tick);
+        svg.appendChild(svgEl('line', { x1: x, y1: m.t, x2: x, y2: H - m.b, class: 'chart-grid' }));
+        svg.appendChild(svgEl('text', { x: x, y: H - 13, class: 'chart-tick', 'text-anchor': 'middle' }, String(tick)));
+      });
+      svg.appendChild(svgEl('line', { x1: m.l, y1: H - m.b, x2: W - m.r, y2: H - m.b, class: 'chart-axis' }));
+
+      series.forEach(function(s, index) {
+        let d = '';
+        s.x.forEach(function(xv, i) { d += (i ? 'L' : 'M') + sx(xv).toFixed(2) + ',' + sy(s.y[i]).toFixed(2) + ' '; });
+        const style = (options.styles && options.styles[index]) || {};
+        const attrs = { d: d.trim(), class: 'chart-series', 'stroke-width': style.width || 4, style: '--series-opacity:' + (style.opacity || 1) };
+        if (style.dash) attrs['stroke-dasharray'] = style.dash;
+        svg.appendChild(svgEl('path', attrs));
+        const last = s.x.length - 1;
+        if (options.endLabels) {
+          svg.appendChild(svgEl('text', { x: sx(s.x[last]) + 10, y: sy(s.y[last]) + (style.labelDy || 4), class: 'chart-end-label' }, style.short || s.name));
+        }
+      });
+      target.appendChild(svg);
+    }
+
+    function scatterChart(targetId, chart) {
+      const target = document.getElementById(targetId);
+      const W = 1000, H = 650, m = { l: 72, r: 40, t: 24, b: 70 };
+      const xMin = -4, xMax = 10, yMin = -15, yMax = 11;
+      const iw = W - m.l - m.r, ih = H - m.t - m.b;
+      const sx = function(v) { return m.l + (v - xMin) / (xMax - xMin) * iw; };
+      const sy = function(v) { return m.t + (yMax - v) / (yMax - yMin) * ih; };
+      const svg = svgEl('svg', { viewBox: '0 0 ' + W + ' ' + H, role: 'img', 'aria-label': 'Scatter plot of long-term emission growth and recent trend change for 213 countries' });
+      [-4,-2,0,2,4,6,8,10].forEach(function(tick) {
+        const x = sx(tick);
+        svg.appendChild(svgEl('line', { x1: x, y1: m.t, x2: x, y2: H - m.b, class: tick === 0 ? 'chart-axis' : 'chart-grid' }));
+        svg.appendChild(svgEl('text', { x: x, y: H - 38, class: 'chart-tick', 'text-anchor': 'middle' }, String(tick)));
+      });
+      [-15,-10,-5,0,5,10].forEach(function(tick) {
+        const y = sy(tick);
+        svg.appendChild(svgEl('line', { x1: m.l, y1: y, x2: W - m.r, y2: y, class: tick === 0 ? 'chart-axis' : 'chart-grid' }));
+        svg.appendChild(svgEl('text', { x: m.l - 12, y: y + 5, class: 'chart-tick', 'text-anchor': 'end' }, String(tick)));
+      });
+      svg.appendChild(svgEl('text', { x: m.l + iw / 2, y: H - 4, class: 'chart-tick', 'text-anchor': 'middle' }, 'LONG-TERM LOG TREND (% PER YEAR)'));
+      const yTitle = svgEl('text', { x: 16, y: m.t + ih / 2, class: 'chart-tick', 'text-anchor': 'middle', transform: 'rotate(-90 16 ' + (m.t + ih / 2) + ')' }, 'RECENT MINUS LONG-TERM TREND (PP/YR)');
+      svg.appendChild(yTitle);
+
+      chart.series.slice(0, 2).forEach(function(s, group) {
+        s.x.forEach(function(xv, i) {
+          svg.appendChild(svgEl('rect', { x: sx(xv) - 3.5, y: sy(s.y[i]) - 3.5, width: 7, height: 7, class: 'scatter-point ' + (group === 0 ? 'rising' : 'falling') }));
+        });
+      });
+      const offsets = { CHN:[10,20], IND:[10,-12], KOR:[10,18], GBR:[10,-12], USA:[10,-12], VNM:[-50,-14] };
+      chart.series.slice(2).forEach(function(s) {
+        const x = sx(s.x[0]), y = sy(s.y[0]);
+        const off = offsets[s.name] || [10,-10];
+        svg.appendChild(svgEl('rect', { x: x - 6, y: y - 6, width: 12, height: 12, class: 'scatter-highlight' }));
+        svg.appendChild(svgEl('text', { x: x + off[0], y: y + off[1], class: 'scatter-label' }, s.name));
+      });
+      target.appendChild(svg);
+    }
+
+    function buildQr() {
+      const pattern = [1,1,1,0,1,0,1,1, 1,0,1,0,0,1,0,1, 1,1,1,0,1,0,1,1, 0,0,0,1,0,1,0,0, 1,0,1,1,1,0,1,0, 0,1,0,0,1,1,0,1, 1,0,1,1,0,1,1,0, 1,1,0,0,1,0,1,1];
+      document.querySelectorAll('.qr-block').forEach(function(qr) {
+        pattern.forEach(function(on) { const cell = document.createElement('i'); if (on) cell.className = 'on'; qr.appendChild(cell); });
+      });
+    }
+
+    /* === DRAW ALL DATA VISUALS === */
+    lineChart('globalTotalChart', CHARTS[0].series, {
+      xMin: 1992, xMax: 2021, yMin: 20, yMax: 38,
+      xTicks: [1992, 2002, 2012, 2021], yTicks: [20, 26, 32, 38],
+      yFormat: function(v) { return v.toFixed(0); }, height: 265,
+      aria: 'Global total carbon dioxide emissions, 1992 to 2021'
+    });
+    lineChart('perCapitaChart', CHARTS[1].series, {
+      xMin: 1992, xMax: 2021, yMin: 3.8, yMax: 4.8,
+      xTicks: [1992, 2002, 2012, 2021], yTicks: [3.8, 4.3, 4.8],
+      yFormat: function(v) { return v.toFixed(1); }, height: 265,
+      aria: 'Global per capita carbon dioxide emissions, 1992 to 2021'
+    });
+    lineChart('countryIndexChart', CHARTS[2].series, {
+      xMin: 1992, xMax: 2021, yMin: 0, yMax: 450,
+      xTicks: [1992, 1997, 2002, 2007, 2012, 2017, 2021], yTicks: [0, 100, 200, 300, 400],
+      height: 610, endLabels: false,
+      styles: [
+        { width: 6 }, { width: 5, opacity: .62 }, { width: 4, dash: '18 10' },
+        { width: 4, dash: '4 9' }, { width: 4, dash: '14 8 3 8' }, { width: 4, dash: '22 11', opacity: .55 }
+      ],
+      aria: 'Indexed carbon dioxide emissions for China, India, the United States, the United Kingdom, Germany and Japan'
+    });
+    scatterChart('momentumScatter', CHARTS[3]);
+    buildQr();
+
+    /* === SLIDE CONTROLLER === */
+    class SlidePresentation {
+      constructor() {
+        this.slides = Array.from(document.querySelectorAll('.slide'));
+        this.currentSlide = 0;
+        this.stage = document.getElementById('deckStage');
+        this.wheelLocked = false;
+        this.touchStartX = null;
+        this.setupStageScale();
+        this.setupKeyboardNav();
+        this.setupTouchNav();
+        this.setupWheelNav();
+        this.setupClickNav();
+        this.showSlide(0);
+      }
+      setupStageScale() {
+        const scale = () => {
+          const factor = Math.min(window.innerWidth / 1920, window.innerHeight / 1080);
+          const x = (window.innerWidth - 1920 * factor) / 2;
+          const y = (window.innerHeight - 1080 * factor) / 2;
+          this.stage.style.transform = 'translate(' + x + 'px, ' + y + 'px) scale(' + factor + ')';
+        };
+        scale();
+        window.addEventListener('resize', scale);
+      }
+      setupKeyboardNav() {
+        document.addEventListener('keydown', (event) => {
+          if (document.body.classList.contains('edit-mode') || event.target.isContentEditable) return;
+          if (['ArrowRight', 'ArrowDown', ' ', 'PageDown'].includes(event.key)) { event.preventDefault(); this.next(); }
+          if (['ArrowLeft', 'ArrowUp', 'PageUp'].includes(event.key)) { event.preventDefault(); this.prev(); }
+          if (event.key === 'Home') this.showSlide(0);
+          if (event.key === 'End') this.showSlide(this.slides.length - 1);
+        });
+      }
+      setupTouchNav() {
+        document.addEventListener('touchstart', (e) => { this.touchStartX = e.changedTouches[0].screenX; }, { passive: true });
+        document.addEventListener('touchend', (e) => {
+          if (this.touchStartX === null) return;
+          const delta = e.changedTouches[0].screenX - this.touchStartX;
+          if (Math.abs(delta) > 45) delta < 0 ? this.next() : this.prev();
+          this.touchStartX = null;
+        }, { passive: true });
+      }
+      setupWheelNav() {
+        document.addEventListener('wheel', (e) => {
+          if (document.body.classList.contains('edit-mode') || this.wheelLocked || Math.abs(e.deltaY) < 12) return;
+          this.wheelLocked = true;
+          e.deltaY > 0 ? this.next() : this.prev();
+          window.setTimeout(() => { this.wheelLocked = false; }, 500);
+        }, { passive: true });
+      }
+      setupClickNav() {
+        document.addEventListener('click', (e) => {
+          if (document.body.classList.contains('edit-mode') || e.target.closest('button')) return;
+          const x = e.clientX / window.innerWidth;
+          if (x > .72) this.next();
+          if (x < .28) this.prev();
+        });
+      }
+      showSlide(index) {
+        this.currentSlide = Math.max(0, Math.min(index, this.slides.length - 1));
+        this.slides.forEach((slide, i) => {
+          slide.classList.toggle('active', i === this.currentSlide);
+          slide.classList.toggle('visible', i === this.currentSlide);
+        });
+        history.replaceState(null, '', '#slide-' + (this.currentSlide + 1));
+      }
+      next() { this.showSlide(this.currentSlide + 1); }
+      prev() { this.showSlide(this.currentSlide - 1); }
+    }
+    const presentation = new SlidePresentation();
+
+    /* === INLINE EDITOR WITH LOCAL AUTOSAVE === */
+    class InlineEditor {
+      constructor() {
+        this.isActive = false;
+        this.items = Array.from(document.querySelectorAll('[data-editable]'));
+        this.restore();
+        this.items.forEach((item, index) => {
+          item.dataset.editKey = 'item-' + index;
+          item.addEventListener('input', () => localStorage.setItem('cobalt-co2-' + item.dataset.editKey, item.innerHTML));
+        });
+      }
+      restore() {
+        this.items.forEach((item, index) => {
+          const saved = localStorage.getItem('cobalt-co2-item-' + index);
+          if (saved !== null) item.innerHTML = saved;
+        });
+      }
+      toggleEditMode() {
+        this.isActive = !this.isActive;
+        document.body.classList.toggle('edit-mode', this.isActive);
+        document.getElementById('editToggle').classList.toggle('active', this.isActive);
+        this.items.forEach((item) => item.setAttribute('contenteditable', this.isActive ? 'true' : 'false'));
+      }
+      download() {
+        const clone = document.documentElement.cloneNode(true);
+        clone.querySelectorAll('[contenteditable]').forEach((item) => item.setAttribute('contenteditable', 'false'));
+        const blob = new Blob(['<!DOCTYPE html>' + clone.outerHTML], { type: 'text/html' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = 'A_Group_Temporal_CO2_Cobalt_Grid_edited.html';
+        link.click();
+        URL.revokeObjectURL(url);
+      }
+    }
+    const editor = new InlineEditor();
+    const hotzone = document.querySelector('.edit-hotzone');
+    const editToggle = document.getElementById('editToggle');
+    let hideTimeout = null;
+    hotzone.addEventListener('mouseenter', () => { clearTimeout(hideTimeout); editToggle.classList.add('show'); });
+    hotzone.addEventListener('mouseleave', () => { hideTimeout = setTimeout(() => { if (!editor.isActive) editToggle.classList.remove('show'); }, 400); });
+    editToggle.addEventListener('mouseenter', () => clearTimeout(hideTimeout));
+    editToggle.addEventListener('mouseleave', () => { hideTimeout = setTimeout(() => { if (!editor.isActive) editToggle.classList.remove('show'); }, 400); });
+    editToggle.addEventListener('click', () => editor.toggleEditMode());
+    hotzone.addEventListener('click', () => editor.toggleEditMode());
+    document.addEventListener('keydown', (e) => {
+      if ((e.key === 'e' || e.key === 'E') && !e.target.isContentEditable) editor.toggleEditMode();
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') { e.preventDefault(); editor.download(); }
+    });
+  </script>
+</body>
+</html>
