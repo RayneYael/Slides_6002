@@ -1,0 +1,22 @@
+{
+  "input_rows": 6378,
+  "countries_and_territories": 213,
+  "main_cohort_countries": 193,
+  "excluded_countries": 20,
+  "feature_count": 11,
+  "selected_k": 2,
+  "pca_components": 4,
+  "pca_explained_variance": 0.8741026929426674,
+  "stability_repeats": 100,
+  "median_adjusted_rand_index": 0.9654752190311369,
+  "random_seed": 42,
+  "candidate_k": [
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8
+  ]
+}
