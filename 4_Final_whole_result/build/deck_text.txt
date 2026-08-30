@@ -1,0 +1,398 @@
+===== SLIDE 1 =====
+CA6002  ·  AI UX & DATA VISUALISATION
+Investigating Country | Carbon Emission Patterns
+- one rising total, two transition pathways
+Fossil CO2 of 193 countries, 1992-2021: does one shared trajectory explain the rise? | The covered total rose from 21.97 Gt to 35.98 Gt  (+63.8%) | K-means used as a screening tool for climate-monitoring priorities
+CO2
+FOSSIL CARBON DIOXIDE  ·  193 COUNTRIES
+Group 30 | RAN CHANGMING  ·  REN SIYU  ·  REYIZA RESIBIEKE  ·  SHEN RUITING | Nanyang Technological University  ·  Group Assignment
+===== SLIDE 2 =====
+How this carbon emission investigation is organised | Contents
+Six blocks, one question: covered fossil CO2 kept rising for 30 years - one shared trajectory, or several transition pathways?
+1
+Introduction | The puzzle: 30 years of growth, one path or many?
+Slide 3
+2
+Exploration of Dataset | Sources, conditioning, and where countries differ
+Slides 4-10
+3
+Design of AI Algorithm | From trajectories to 11 features, PCA and K-means
+Slides 11-14
+4
+Model Evaluation and Performance | Validity, stability and membership uncertainty
+Slides 15-17
+5
+Visual Storytelling | Two pathways, two monitoring priorities
+Slides 18-21
+6
+Conclusions | Contributions, novelty and limitations
+Slide 22
+Cover, contents and acknowledgements are not counted in the 20 body slides, following the assignment template.
+===== SLIDE 3 =====
+INTRODUCTION · Why we investigate country carbon emission patterns | Emissions kept rising - but not along one shared path
+Responsible: SHEN RUITING
+3
+THE PUZZLE
++63.8% | Sample-wide fossil CO2, 1992 to 2021 | 21.97 to 35.98 Gt across the 193 countries covered by our panel
+30 years | of sustained global climate attention | yet the covered total kept growing - why, and driven by whom?
+OUR QUESTION CHAIN
+Q1
+Is the rise one common trajectory - or different transition pathways?
+Q2
+Do countries differ only in size, or in speed, timing and fuel mix?
+Q3
+Can AI identify these pathways stably from trajectory features?
+Q4
+Where should limited climate-monitoring attention go?
+Approach | explore differences  →  engineer trajectory features  →  K-means (K = 2)  →  evaluate separation and stability  →  pathway-specific monitoring priorities | The deck follows the four stages required by the brief, in that order.
+===== SLIDE 4 =====
+Responsible: Shen Ruiting
+SOURCE ROLES
+OWID CO2 Data
+PRIMARY BACKBONE
+1992–2021 country-year coverage
+Population · total CO2 · CO2 per person | Consistent identifiers and broad historical coverage
+Defines which rows remain in the final panel
+Global Carbon Budget 2022 (v27)
+SUPPLEMENT
+Fuel-component detail
+Coal CO2 · oil CO2 · gas CO2 | Used only where the OWID component is missing
+Adds composition without redefining the backbone
+MERGE PRINCIPLE
+Retain OWID rows
++
+Fill missing fuel fields
+=
+Never overwrite observed values
+1 / 7
+EXPLORATION OF DATASET · Where the emission data comes from | Two sources create one traceable emissions panel
+1 / 7
+Why it matters:  every later feature is computed from these same 6,378 country-year rows, so the panel has to be auditable first.
+Data: [1] [2]
+===== SLIDE 5 =====
+Responsible: Shen Ruiting
+CONDITIONING WORKFLOW
+1
+Scope
+1992–2021 | valid ISO rows
+2
+Harmonise
+ISO-3 + year | units + names
+3
+Left join
+OWID → GCB | fuel-only fill
+4
+Condition
+core + growth | shares + flags
+Final checks: unique country-year keys · consistent units · traceable source fields
+6,378
+country-year rows
+213
+ISO entities
+30
+years
+22
+fields
+50.8%
+rows supplemented
+STRENGTH
+Traceable row retention and field-level supplementation
+LIMITATION
+Unbalanced country panel; coverage varies across small entities
+2 / 7
+EXPLORATION OF DATASET · Building one comparable country-year panel | A controlled left join keeps the OWID backbone intact
+2 / 7
+Why it matters:  conditioning is where a study can silently bias itself, so no observed value is overwritten and every filled field stays flagged.
+Data: [1] [2]
+===== SLIDE 6 =====
+Responsible: REYIZA RESIBIEKE
+1992 → 2021
++63.8%
+Global total | 21.97 → 35.98 Gt
++13.3%
+Per person | 4.00 → 4.53 t
+INTERPRETATION
+Most growth came from scale, not equal growth in emissions intensity.
+3 / 7
+EXPLORATION OF DATASET · How much did the covered emissions rise, 1992-2021? | Total CO2 grew nearly five times faster than per person
+3 / 7
+Why it matters:  the aggregate tells us the total grew, not which countries produced the growth or how their paths differ.
+===== SLIDE 7 =====
+Responsible: REYIZA RESIBIEKE
+HOW TO READ
+X
+Long-term log trend
+Y
+Recent minus long-term
+■
+Per-capita trend rising
+□
+Per-capita trend falling
+One endpoint change cannot capture both direction and momentum.
+4 / 7
+EXPLORATION OF DATASET · Is the rise one shared trajectory or many? | Long-term growth differs from recent momentum
+4 / 7
+Reading the puzzle:  long-term growth and recent momentum disagree, so no single growth number can describe a 30-year trajectory.
+===== SLIDE 8 =====
+Responsible: Shen Ruiting
+CONCENTRATION
+59.8%
+Asia's share of | 2021 emissions
+31.4%
+China's share of | the global total
+81.2%
+Combined share of | the top 20 emitters
+5 / 7
+EXPLORATION OF DATASET · Who carries the current emission burden? | A small set of countries drives most 2021 emissions
+5 / 7
+Why it matters:  monitoring built around today's biggest emitters alone will overlook the fast-growing rest.
+===== SLIDE 9 =====
+Responsible: Shen Ruiting
+LAND FILL · CO2 PER PERSON
+low
+high
+BAR HEIGHT · TOTAL CO2
+short
+tall
+TWO LENSES
+TOTAL
+China
+Largest national burden
+PER PERSON
+Qatar
+High intensity, much smaller total
+Scale ≠ intensity
+6 / 7
+EXPLORATION OF DATASET · Emission scale versus emission intensity | Total burden and per-capita intensity tell different stories
+6 / 7
+Why it matters:  scale and intensity rank countries differently, which is the first evidence that one ranking cannot serve as one diagnosis.
+===== SLIDE 10 =====
+Responsible: Shen Ruiting
+COAL
+Asia
+OIL
+Africa · Middle East · Americas
+GAS
+Russia · Central Asia
+Dominant fuel shows category; pies retain the actual mix.
+7 / 7
+EXPLORATION OF DATASET · What the emissions are actually made of | Fuel dependence is geographically uneven
+7 / 7
+Why it matters:  fuel composition is what makes a transition easy or locked in, so coal and gas shares enter the model as the fuel-shift block.
+===== SLIDE 11 =====
+DESIGN OF AI ALGORITHM · Defining the clustering unit and the modelled cohort | From 213 territories to 193 comparable country profiles
+1 / 4
+Responsible: RAN CHANGMING
+11
+COHORT FUNNEL
+6,378
+country-year rows | OWID backbone + GCB fuel fills, 1992-2021
+213
+countries & territories | valid ISO codes in the panel
+-16
+micro states excluded | populations too small for stable trajectories
+-4
+incomplete histories excluded | fewer than 30 consecutive years 1992-2021
+193
+modelled countries / entities | complete history + reliable fuel structure
+WHY THIS COHORT
+Trajectory features need complete histories. Slopes, peaks and post-peak change are only comparable when every country covers the same 30 years. | Fuel features need reliable shares. Entities with unreliable fuel structure would distort the fuel-shift block.
+ONE COUNTRY = ONE PROFILE | Each of the 193 countries becomes a single 11-feature trajectory profile - the clustering unit for everything that follows.
+AUDITABLE BY DESIGN | Every exclusion is logged with its reason in cohort_audit.csv, so the sample can be reproduced or challenged.
+===== SLIDE 12 =====
+DESIGN OF AI ALGORITHM · Turning 30-year emission histories into model features | Eleven features describe level, direction, timing and fuel shift
+2 / 4
+Responsible: RAN CHANGMING
+12
+01 · LEVEL
+How intense is the economy now?
+· Log recent per-capita CO2 | · (median 2017-2021)
+Log scale stops extreme values from dominating distances.
+02 · DIRECTION
+Which way is the trajectory moving?
+· Long-term log slope 1992-2021 | · Recent log slope 2012-2021 | · Acceleration (recent - long-term)
+Separates long-run direction from recent slowdown or renewed growth.
+03 · TIMING
+When does change happen?
+· Growth volatility (MAD) | · Peak timing (relative) | · Post-peak change
+Distinguishes smooth plateauing from unstable or still-rising paths.
+04 · FUEL SHIFT
+Is the fuel mix decarbonising?
+· Recent coal & gas shares | · Coal & gas share change | · (early vs recent 5-yr medians)
+Oil share is kept for interpretation but omitted from the model to avoid perfect dependence.
+Built only from per-capita CO2, growth rates and fuel shares - total CO2 and population never enter the model; they return later, only to interpret the pathways.
+===== SLIDE 13 =====
+DESIGN OF AI ALGORITHM · Scaling, PCA, K-means and how they are validated | A fixed pipeline turns 30-year histories into two pathways
+3 / 4
+Responsible: RAN CHANGMING
+[4]
+13
+COUNTRY-YEAR PANEL
+6,378 rows · 1992-2021
+193 COUNTRY PROFILES
+one row per country, 11 features
+ROBUSTSCALER
+median / IQR scaling, so outliers cannot dominate distances
+PCA → 4 COMPONENTS
+87.41% of variance kept, correlated features merged
+K-MEANS · K = 2-8
+50 restarts, fixed seed 42: the grouping re-runs identically
+VALIDATION RUNS ALONGSIDE - NOT INSIDE - THE CLUSTERING
+GMM SOFT MEMBERSHIP | probability of belonging to each cluster
+100 x 80% SUBSAMPLING | refit and compare labels (Adjusted Rand Index)
+NEITHER CHANGES THE LABELS | both instruments only test the grouping that K-means already produced
+WHY K-MEANS
+Unsupervised by design: no labels exist for 'transition pathway', so we cluster comparable profiles and validate the structure afterwards. | Simple, explainable, reproducible: a fixed seed and n_init = 50 make the exact grouping re-runnable; PCA removes redundancy among correlated trajectory features before distances are computed.
+===== SLIDE 14 =====
+DESIGN OF AI ALGORITHM · Choosing how many emission patterns to keep (K = 2-8) | All three validity metrics rank K = 2 first
+4 / 4
+Responsible: RAN CHANGMING
+[4] [5]
+14
+Inertia (within-cluster sum of squares) always falls as K grows - shown for reference only, never used alone to pick K.
+How the decision was made | · Three internal criteria were computed on the same PCA space for every candidate K from 2 to 8, so the comparison is like-for-like. | · All three agree on K = 2; no criterion prefers a finer split, and K = 3-8 lose separation without adding interpretable structure. | · K = 2 is therefore a screening frame for monitoring attention, not a claim that only two kinds of country exist.
+0.486   Silhouette
+highest - compact, well separated
+0.865   Davies-Bouldin
+lowest - least overlap
+98.3   Calinski-Harabasz
+highest - strongest split
+DECISION | K = 2 - the strongest macro segmentation, not the most detailed taxonomy.
+===== SLIDE 15 =====
+MODEL EVALUATION AND PERFORMANCE · Does the two-pattern structure actually separate? | Two pathways separate cleanly in reduced feature space
+1 / 3
+Responsible: REN SIYU
+15
+HOW TO READ
+Each dot is one country's 11-feature profile, projected onto the first two principal components. | Colour shows the K-means label computed in the full 4-component space - not in this 2D view. | Dark rings mark the 10 low-confidence boundary countries.
+PC1 + PC2 show 70.8% of variance | Clustering used all four retained components (87.41%). This 2D projection is a display device - the visible separation understates the true separation.
+===== SLIDE 16 =====
+MODEL EVALUATION AND PERFORMANCE · Internal validity metrics, since no ground-truth labels exist | K = 2 wins on every internal validity metric
+2 / 3
+Responsible: REN SIYU
+[5]
+16
+K ; Inertia (lower) ; Silhouette (higher) ; Davies-Bouldin (lower) ; Calinski-Harabasz (higher)
+2 ; 1675.8 ; 0.486 ; 0.865 ; 98.3
+3 ; 1296.4 ; 0.361 ; 0.969 ; 91.0
+4 ; 1064.7 ; 0.271 ; 1.168 ; 87.2
+5 ; 915.9 ; 0.278 ; 1.086 ; 83.2
+6 ; 782.4 ; 0.283 ; 1.004 ; 83.9
+7 ; 700.6 ; 0.265 ; 1.071 ; 81.3
+8 ; 647.4 ; 0.263 ; 1.045 ; 77.2
+Highlighted row: K = 2 wins Silhouette, Davies-Bouldin and Calinski-Harabasz simultaneously.
+SILHOUETTE | Rewards clusters that are internally compact and well separated from neighbours.
+DAVIES-BOULDIN | Penalises overlap between cluster pairs; lower means cleaner separation.
+CALINSKI-HARABASZ | Compares between-cluster with within-cluster dispersion; higher is better.
+NO SUPERVISED ACCURACY | Accuracy, precision, recall, F1, ROC and confusion matrices require ground-truth labels. Pathways have none - evaluation therefore uses internal validity plus stability.
+===== SLIDE 17 =====
+MODEL EVALUATION AND PERFORMANCE · Resampling stability and membership confidence | The split survives resampling; ten stay uncertain
+3 / 3
+Responsible: REN SIYU
+[6]
+17
+Left: 100 refits on 80% country subsamples - median Adjusted Rand Index 0.965 (minimum 0.778). Right: GMM soft membership on the same feature space.
+BOUNDARY COUNTRIES
+GMM confidence below 0.70: | South Korea 0.51 · Guatemala 0.53 · Trinidad & Tobago 0.56 · Sri Lanka 0.61 · Estonia 0.63 · Venezuela 0.65 · Oman 0.66 · Jordan 0.66 · Madagascar 0.67 · Azerbaijan 0.68 | Not a third pathway - membership to be confirmed with more data.
+Verdict: the two-pathway macro structure is stable (ARI close to 1 on most refits), and the only genuine uncertainty is a small, known boundary set - exactly the countries a monitoring programme should track more closely.
+===== SLIDE 18 =====
+VISUAL STORYTELLING · What kind of emission patterns did the model find? | One rising total conceals two different transition pressures
+1 / 4
+Responsible: REN SIYU
+[1] [2]
+18
+Shares use 2017-2021 emissions of the 193 modelled countries; the 10 boundary countries stay inside their pathway, not a third group.
+Rapid-growth pathway
+24 countries
+Lower base, fast recent growth, late peak - potential future additional emissions if recent patterns persist.
+1.49 t
+CO2 per person
++2.78%
+recent growth per year
+2018
+median peak year
+7.8%
+share of 2017-21 emissions
+Fuel mix  coal 42% / oil 56% / gas 2%    e.g. Vietnam, Bangladesh
+Plateauing / slowdown pathway
+169 countries
+Growth has flattened or turned down - yet this pathway still carries almost all of the current emissions burden.
+3.19 t
+CO2 per person
+-0.26%
+recent growth per year
+2009
+median peak year
+92.2%
+share of 2017-21 emissions
+Fuel mix  coal 2% / oil 85% / gas 14%    e.g. China, United States
+===== SLIDE 19 =====
+VISUAL STORYTELLING · Why ranking countries by one number misleads | Current burden and future pressure require different lenses
+2 / 4
+Responsible: REYIZA RESIBIEKE
+19
+WHY ONE LENS FAILS
+Rank by emissions only  | and you watch China, the US and India while missing small-base, fast-growing, late-peak countries in the upper left.
+Rank by growth only  | and you overrate small economies while underrating the plateauing majors that hold 92.2% of current emissions.
+===== SLIDE 20 =====
+VISUAL STORYTELLING · Where each emission pattern is located | Transition pressures are geographically uneven
+3 / 4
+Responsible: SHEN RUITING
+[1] [3]
+20
+The map locates monitoring tasks, not judgement: rapid-growth pressure clusters in South and Southeast Asia; dark outlines flag the 10 boundary countries.
+===== SLIDE 21 =====
+VISUAL STORYTELLING · How limited monitoring attention should be allocated | Where emissions head decides where monitoring goes
+4 / 4
+Responsible: SHEN RUITING
+[3]
+21
+15E to 44E
+Centre of gravity of all 193 countries moves east across Asia.
++198%
+Rapid-growth emissions since 1992; its centre stays in South/Southeast Asia.
++58%
+Plateauing emissions - still 92.2% of the recent total.
+MONITORING PRIORITIES
+Rapid-growth pathway (24)
+Watch: growth rate · fuel shares · peak timing | Progress = growth slows, high-carbon shares fall
+Plateauing pathway (169)
+Watch: total emissions · pace of decline | Progress = absolute emissions fall structurally
+Boundary countries (10)
+Watch: data completeness · membership stability | Progress = the assignment stabilises with better data
+===== SLIDE 22 =====
+CONCLUSIONS · What this investigation changes for climate monitoring | From one emission total to pathway-specific monitoring
+Responsible: GROUP 30 - ALL MEMBERS
+22
+CURRENT BURDEN
+The 169-country plateauing pathway holds 92.2% of 2017-2021 sample emissions
+Push the plateau into absolute decline - this is the short-term mitigation lever.
+FUTURE PRESSURE
+The 24-country rapid-growth pathway: fast growth, late peaks, +198% since 1992
+Track growth and lock-in signals now, before today's growth becomes tomorrow's burden.
+BOUNDARY UNCERTAINTY
+10 low-confidence countries identified by soft membership
+Observe them more frequently instead of forcing a fixed classification.
+What is novel here: an 11-feature trajectory profile (level · direction · timing · fuel shift) that makes 30 years of history comparable per country, and a stability-checked K = 2 screen used as a monitoring tool - not as another league table.
+Honest limits: pathways are empirical patterns in 1992-2021, not causes, forecasts or policy verdicts; with no policy or economic variables in the panel, the model prioritises deeper investigation - it does not replace it.
+The purpose is not to rank countries, but to identify where different transition pressures require different monitoring priorities.
+===== SLIDE 23 =====
+Acknowledgements
+Thank you | for your attention and questions.
+Course | CA6002 AI UX & Data Visualisation Design Principles, NTU.
+Open-source tools | Python, pandas, scikit-learn, matplotlib, GeoPandas, python-pptx.
+Generative AI | ChatGPT (OpenAI) assisted with Python plotting code; all data processing, results and interpretation are the group's own work.
+Group 30 | RAN CHANGMING  ·  REN SIYU | REYIZA RESIBIEKE  ·  SHEN RUITING
+REFERENCES
+[1]
+Ritchie, H., Rosado, P. & Roser, M. (2023). CO₂ and Greenhouse Gas Emissions. Our World in Data.
+[2]
+Friedlingstein, P. et al. (2022). Global Carbon Budget 2022. Earth Syst. Sci. Data, 14(11), 4811-4900.
+[3]
+Natural Earth. Admin 0 - Countries, 1:110m Cultural Vectors (public domain).
+[4]
+Pedregosa, F. et al. (2011). Scikit-learn: Machine Learning in Python. JMLR, 12, 2825-2830.
+[5]
+Rousseeuw, P. J. (1987). Silhouettes: a graphical aid to cluster analysis. J. Comput. Appl. Math., 20, 53-65.
+[6]
+Hubert, L. & Arabie, P. (1985). Comparing partitions. J. Classification, 2, 193-218.
