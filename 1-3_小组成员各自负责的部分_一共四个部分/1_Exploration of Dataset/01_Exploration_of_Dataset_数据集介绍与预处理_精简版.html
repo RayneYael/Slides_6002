@@ -1,0 +1,851 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Exploration of Dataset · Simplified</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Newsreader:ital,opsz,wght@0,6..72,500;1,6..72,500&display=swap" rel="stylesheet">
+  <style>
+    /* ===========================================
+       THEME
+       =========================================== */
+    :root {
+      --paper: #f5f2e9;
+      --paper-deep: #eae5d9;
+      --ink: #172238;
+      --muted: #657083;
+      --line: #c8c5bc;
+      --blue: #1759c7;
+      --blue-soft: #e4ecfa;
+      --orange: #c95f24;
+      --orange-soft: #f6e5da;
+      --stage-bg: #17191e;
+      --slide-bg: var(--paper);
+      --font-display: "Newsreader", Georgia, serif;
+      --font-body: "DM Sans", sans-serif;
+      --ease: cubic-bezier(.16, 1, .3, 1);
+    }
+
+    * { box-sizing: border-box; }
+
+    /* ===========================================
+       FIXED 16:9 STAGE: MANDATORY BASE STYLES
+       Slides are authored at 1920×1080 and scale as one unit.
+       =========================================== */
+    html,
+    body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      overflow: hidden;
+      background: var(--stage-bg, #000);
+    }
+
+    .deck-viewport {
+      position: fixed;
+      inset: 0;
+      overflow: hidden;
+      background: var(--stage-bg, #000);
+    }
+
+    .deck-stage {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 1920px;
+      height: 1080px;
+      overflow: hidden;
+      transform-origin: 0 0;
+      background: var(--slide-bg, #fff);
+    }
+
+    .slide {
+      position: absolute;
+      inset: 0;
+      width: 1920px;
+      height: 1080px;
+      overflow: hidden;
+      display: block;
+      visibility: hidden;
+      opacity: 0;
+      pointer-events: none;
+      background: var(--slide-bg, #fff);
+    }
+
+    .slide.active,
+    .slide.visible {
+      visibility: visible;
+      opacity: 1;
+      pointer-events: auto;
+      z-index: 1;
+    }
+
+    img,
+    video,
+    canvas,
+    svg {
+      max-width: 100%;
+      max-height: 100%;
+    }
+
+    .deck-controls {
+      position: fixed;
+      left: 50%;
+      bottom: 22px;
+      transform: translateX(-50%);
+      z-index: 1000;
+    }
+
+    @media print {
+      html,
+      body {
+        width: 1920px;
+        height: auto;
+        overflow: visible;
+        background: #fff;
+      }
+
+      .deck-viewport {
+        position: static;
+        overflow: visible;
+        background: #fff;
+      }
+
+      .deck-stage {
+        position: static;
+        width: auto;
+        height: auto;
+        transform: none !important;
+        background: none;
+      }
+
+      .slide {
+        position: relative;
+        display: block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        pointer-events: auto !important;
+        width: 1920px;
+        height: 1080px;
+        break-after: page;
+        page-break-after: always;
+      }
+
+      .slide:last-child {
+        break-after: auto;
+        page-break-after: auto;
+      }
+
+      .deck-controls,
+      .edit-tools,
+      .edit-hotzone,
+      .notes {
+        display: none !important;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *,
+      *::before,
+      *::after {
+        animation-duration: .01ms !important;
+        transition-duration: .2s !important;
+      }
+    }
+
+    /* ===========================================
+       BASE TYPOGRAPHY AND LAYOUT
+       =========================================== */
+    body {
+      color: var(--ink);
+      font-family: var(--font-body);
+    }
+
+    .slide-inner {
+      position: absolute;
+      inset: 0;
+      padding: 60px 86px 54px;
+    }
+
+    .topline {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding-bottom: 18px;
+      border-bottom: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 15px;
+      font-weight: 700;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+    }
+
+    .page-mark { color: var(--ink); }
+
+    h1 {
+      max-width: 1480px;
+      margin: 42px 0 0;
+      font-family: var(--font-display);
+      font-size: 78px;
+      font-weight: 500;
+      line-height: .98;
+      letter-spacing: -.025em;
+    }
+
+    .lede {
+      max-width: 1260px;
+      margin: 19px 0 0;
+      color: var(--muted);
+      font-size: 24px;
+      line-height: 1.45;
+    }
+
+    .footer {
+      position: absolute;
+      right: 86px;
+      bottom: 32px;
+      left: 86px;
+      display: flex;
+      justify-content: space-between;
+      color: var(--muted);
+      font-size: 13px;
+      letter-spacing: .04em;
+    }
+
+    /* ===========================================
+       SUBTLE ENTRANCE MOTION
+       =========================================== */
+    .reveal {
+      opacity: 0;
+      transform: translateY(18px);
+      transition: opacity .55s var(--ease), transform .55s var(--ease);
+    }
+
+    .visible .reveal {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .visible .reveal:nth-child(2) { transition-delay: .06s; }
+    .visible .reveal:nth-child(3) { transition-delay: .12s; }
+    .visible .reveal:nth-child(4) { transition-delay: .18s; }
+    .visible .reveal:nth-child(5) { transition-delay: .24s; }
+
+    /* ===========================================
+       SLIDE 1: SOURCE RELATIONSHIP
+       =========================================== */
+    .source-system {
+      display: grid;
+      grid-template-columns: 1.65fr .85fr;
+      min-height: 386px;
+      margin-top: 46px;
+      border-top: 1px solid var(--line);
+      border-bottom: 1px solid var(--line);
+    }
+
+    .source {
+      position: relative;
+      padding: 42px 46px 38px 0;
+    }
+
+    .source + .source {
+      padding-right: 0;
+      padding-left: 48px;
+      border-left: 1px solid var(--line);
+    }
+
+    .source-role {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 15px;
+      font-weight: 700;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+    }
+
+    .source-role::before {
+      width: 10px;
+      height: 10px;
+      background: currentColor;
+      border-radius: 50%;
+      content: "";
+    }
+
+    .primary .source-role,
+    .primary .source-name { color: var(--blue); }
+
+    .supplement .source-role,
+    .supplement .source-name { color: var(--orange); }
+
+    .source-name {
+      margin: 70px 0 0;
+      font-family: var(--font-display);
+      font-size: 56px;
+      font-weight: 500;
+      line-height: 1;
+    }
+
+    .source-copy {
+      max-width: 750px;
+      margin: 20px 0 0;
+      color: var(--ink);
+      font-size: 23px;
+      line-height: 1.45;
+    }
+
+    .source-detail {
+      position: absolute;
+      right: 46px;
+      bottom: 42px;
+      left: 0;
+      color: var(--muted);
+      font-size: 16px;
+    }
+
+    .supplement .source-detail {
+      right: 0;
+      left: 48px;
+    }
+
+    .merge-rule {
+      display: grid;
+      grid-template-columns: 1.25fr 1fr 1fr;
+      gap: 0;
+      margin-top: 32px;
+    }
+
+    .rule-lead,
+    .rule-item {
+      min-height: 98px;
+      padding: 18px 28px 16px 0;
+    }
+
+    .rule-item {
+      padding-left: 28px;
+      border-left: 1px solid var(--line);
+    }
+
+    .rule-lead {
+      color: var(--ink);
+      font-family: var(--font-display);
+      font-size: 28px;
+      font-style: italic;
+      line-height: 1.25;
+    }
+
+    .rule-item small {
+      display: block;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+    }
+
+    .rule-item strong {
+      display: block;
+      margin-top: 10px;
+      font-size: 23px;
+      font-weight: 600;
+    }
+
+    /* ===========================================
+       SLIDE 2: PIPELINE AND OUTPUT
+       =========================================== */
+    .pipeline {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      margin-top: 48px;
+      border-top: 1px solid var(--line);
+      border-bottom: 1px solid var(--line);
+    }
+
+    .pipeline-step {
+      min-height: 258px;
+      padding: 30px 34px 30px 0;
+    }
+
+    .pipeline-step + .pipeline-step {
+      padding-left: 34px;
+      border-left: 1px solid var(--line);
+    }
+
+    .step-no {
+      color: var(--muted);
+      font-size: 14px;
+      font-weight: 700;
+      letter-spacing: .12em;
+    }
+
+    .step-name {
+      margin-top: 38px;
+      font-family: var(--font-display);
+      font-size: 37px;
+      font-weight: 500;
+      line-height: 1.05;
+    }
+
+    .pipeline-step:nth-child(3) .step-name { color: var(--orange); }
+
+    .step-copy {
+      margin-top: 18px;
+      color: var(--muted);
+      font-size: 18px;
+      line-height: 1.45;
+    }
+
+    .priority-rule {
+      display: flex;
+      align-items: center;
+      gap: 18px;
+      min-height: 72px;
+      margin-top: 24px;
+      padding-left: 22px;
+      border-left: 5px solid var(--blue);
+      font-size: 21px;
+    }
+
+    .priority-rule strong { color: var(--blue); }
+
+    .results {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr 1.35fr;
+      min-height: 190px;
+      margin-top: 27px;
+      background: var(--paper-deep);
+    }
+
+    .result {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      padding: 26px 30px;
+    }
+
+    .result + .result { border-left: 1px solid var(--line); }
+
+    .result strong {
+      font-family: var(--font-display);
+      font-size: 54px;
+      font-weight: 500;
+      line-height: 1;
+    }
+
+    .result span {
+      margin-top: 12px;
+      color: var(--muted);
+      font-size: 14px;
+      font-weight: 700;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+
+    .result.highlight {
+      background: var(--orange-soft);
+      color: var(--orange);
+    }
+
+    .result.highlight span {
+      color: #77412b;
+      line-height: 1.35;
+      text-transform: none;
+    }
+
+    .quality-line {
+      margin-top: 20px;
+      color: var(--muted);
+      font-size: 15px;
+      text-align: right;
+    }
+
+    /* ===========================================
+       NOTES, NAVIGATION, AND INLINE EDITING
+       =========================================== */
+    .notes {
+      position: fixed;
+      top: 24px;
+      right: 24px;
+      z-index: 3000;
+      display: none;
+      width: 440px;
+      max-height: 82vh;
+      padding: 22px;
+      overflow: auto;
+      background: #fffdf8;
+      border: 1px solid var(--line);
+      color: var(--ink);
+      box-shadow: 0 18px 60px rgba(0, 0, 0, .2);
+    }
+
+    body.show-notes .active .notes { display: block; }
+
+    .notes h3 {
+      margin: 0 0 12px;
+      font-size: 14px;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+
+    .notes [data-note] { font-size: 15px; line-height: 1.55; }
+
+    .deck-controls {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 7px 11px;
+      background: rgba(245, 242, 233, .95);
+      border: 1px solid var(--line);
+      border-radius: 99px;
+      opacity: .22;
+      transition: opacity .2s ease;
+    }
+
+    .deck-controls:hover { opacity: 1; }
+
+    .deck-controls button,
+    .edit-tools button {
+      border: 0;
+      background: transparent;
+      color: var(--ink);
+      font: 600 14px var(--font-body);
+      cursor: pointer;
+    }
+
+    .counter { min-width: 56px; font-size: 13px; text-align: center; }
+
+    .edit-hotzone {
+      position: fixed;
+      top: 0;
+      left: 0;
+      z-index: 10000;
+      width: 86px;
+      height: 86px;
+      cursor: pointer;
+    }
+
+    .edit-tools {
+      position: fixed;
+      top: 16px;
+      left: 16px;
+      z-index: 10001;
+      display: flex;
+      gap: 6px;
+      padding: 7px 9px;
+      background: rgba(255, 253, 248, .96);
+      border: 1px solid var(--line);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .2s ease;
+    }
+
+    .edit-tools.show,
+    .edit-tools.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .editing [data-editable] {
+      outline: 2px dashed var(--orange);
+      outline-offset: 4px;
+      cursor: text;
+    }
+  </style>
+</head>
+<body>
+  <div class="deck-viewport">
+    <main class="deck-stage" id="deckStage">
+      <!-- ===========================================
+           SLIDE 1: DATA SOURCES
+           =========================================== -->
+      <section class="slide active" aria-label="Data sources">
+        <div class="slide-inner">
+          <div class="topline reveal">
+            <span data-editable>Exploration · Data sources</span>
+            <span class="page-mark" data-editable>01 / 02</span>
+          </div>
+
+          <h1 class="reveal" data-editable>One analytical backbone.<br>One targeted supplement.</h1>
+          <p class="lede reveal" data-editable>OWID defines the country-year panel; GCB fills only missing coal, oil and gas values.</p>
+
+          <div class="source-system reveal">
+            <article class="source primary">
+              <div class="source-role" data-editable>Primary · analytical backbone</div>
+              <h2 class="source-name" data-editable>OWID CO₂ Data</h2>
+              <p class="source-copy" data-editable>Emissions scale, population, per-capita intensity and annual change.</p>
+              <div class="source-detail" data-editable>Observed OWID values remain authoritative.</div>
+            </article>
+
+            <article class="source supplement">
+              <div class="source-role" data-editable>Supplement · gap fill</div>
+              <h2 class="source-name" data-editable>GCB 2022</h2>
+              <p class="source-copy" data-editable>Coal · Oil · Gas</p>
+              <div class="source-detail" data-editable>Used only when the matching OWID component is absent.</div>
+            </article>
+          </div>
+
+          <div class="merge-rule reveal">
+            <div class="rule-lead" data-editable>No overwrite.<br>Every completed value stays traceable.</div>
+            <div class="rule-item"><small data-editable>Match key</small><strong data-editable>ISO-3 × year</strong></div>
+            <div class="rule-item"><small data-editable>Common window</small><strong data-editable>1992–2021</strong></div>
+          </div>
+
+          <div class="footer">
+            <span data-editable>Source: OWID CO₂ Data · Global Carbon Budget 2022 v27</span>
+            <span data-editable>Prepared by · Shen Ruiting</span>
+          </div>
+
+          <aside class="notes">
+            <h3>Speaker notes</h3>
+            <div data-note contenteditable="true">OWID remains the analytical backbone. GCB 2022 contributes only missing coal, oil and gas components, matched by ISO-3 and year. Existing OWID observations are never overwritten. Later comparisons use the common 1992–2021 window. Detailed source dimensions and raw coverage counts have been removed from the visible slide and can be restored in an appendix if required.</div>
+          </aside>
+        </div>
+      </section>
+
+      <!-- ===========================================
+           SLIDE 2: DATA PREPARATION
+           =========================================== -->
+      <section class="slide" aria-label="Data preparation">
+        <div class="slide-inner">
+          <div class="topline reveal">
+            <span data-editable>Exploration · Data preparation</span>
+            <span class="page-mark" data-editable>02 / 02</span>
+          </div>
+
+          <h1 class="reveal" data-editable>Four steps produce one traceable analysis panel.</h1>
+          <p class="lede reveal" data-editable>A left join preserves OWID identity, fills fuel gaps and derives analysis-ready fields.</p>
+
+          <div class="pipeline reveal">
+            <article class="pipeline-step">
+              <div class="step-no" data-editable>01 · FILTER</div>
+              <h2 class="step-name" data-editable>1992–2021</h2>
+              <p class="step-copy" data-editable>Keep ISO-coded country rows in the shared analysis window.</p>
+            </article>
+            <article class="pipeline-step">
+              <div class="step-no" data-editable>02 · LEFT JOIN</div>
+              <h2 class="step-name" data-editable>ISO-3 × year</h2>
+              <p class="step-copy" data-editable>OWID remains the main table and retains entity identity.</p>
+            </article>
+            <article class="pipeline-step">
+              <div class="step-no" data-editable>03 · FILL GAPS</div>
+              <h2 class="step-name" data-editable>OWID first</h2>
+              <p class="step-copy" data-editable>Use GCB only for missing coal, oil or gas components.</p>
+            </article>
+            <article class="pipeline-step">
+              <div class="step-no" data-editable>04 · DERIVE</div>
+              <h2 class="step-name" data-editable>Analysis fields</h2>
+              <p class="step-copy" data-editable>Calculate fuel shares and retain source provenance.</p>
+            </article>
+          </div>
+
+          <div class="priority-rule reveal" data-editable><strong>Priority rule:</strong> observed OWID → GCB gap fill → verified zero.</div>
+
+          <div class="results reveal">
+            <div class="result"><strong data-editable>6,378</strong><span data-editable>Entity–year rows</span></div>
+            <div class="result"><strong data-editable>213</strong><span data-editable>ISO entities</span></div>
+            <div class="result"><strong data-editable>30</strong><span data-editable>Years</span></div>
+            <div class="result highlight"><strong data-editable>50.8%</strong><span data-editable>gained at least one completed fuel component</span></div>
+          </div>
+
+          <div class="quality-line reveal" data-editable>99.8% entity–year coverage · no missing core measures</div>
+
+          <div class="footer">
+            <span data-editable>Output · one row = one ISO-coded entity in one year</span>
+            <span data-editable>Prepared by · Shen Ruiting</span>
+          </div>
+
+          <aside class="notes">
+            <h3>Speaker notes</h3>
+            <div data-note contenteditable="true">Read the preparation flow from left to right. Country rows are restricted to 1992–2021, joined by ISO-3 and year, completed under an OWID-first rule, and used to derive fuel shares and interpretation fields. The final panel contains 6,378 entity-year rows, 213 ISO-coded entities and 30 years. In 50.8% of rows, at least one fuel component was completed. Core measures have no missing values, while small territories and unreliable fuel profiles still require cautious interpretation.</div>
+          </aside>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- Presentation chrome lives outside the fixed slide stage. -->
+  <div class="edit-hotzone" aria-label="Show editing tools"></div>
+  <div class="edit-tools" id="editTools">
+    <button id="editBtn" title="Edit mode (E)">EDIT</button>
+    <button id="notesBtn" title="Speaker notes (N)">NOTES</button>
+    <button id="saveBtn" title="Download edited HTML (Ctrl+S)">SAVE</button>
+  </div>
+
+  <nav class="deck-controls">
+    <button id="prev" aria-label="Previous slide">←</button>
+    <span class="counter" id="counter">01 / 02</span>
+    <button id="next" aria-label="Next slide">→</button>
+    <button id="full" aria-label="Toggle fullscreen">⛶</button>
+  </nav>
+
+  <script>
+    /* ===========================================
+       PRESENTATION CONTROLLER
+       =========================================== */
+    class SlidePresentation {
+      constructor() {
+        this.slides = [...document.querySelectorAll('.slide')];
+        this.stage = document.getElementById('deckStage');
+        this.current = 0;
+        this.touchStartX = null;
+        this.wheelLocked = false;
+        this.scaleStage();
+        this.bindNavigation();
+        this.show(0);
+        window.addEventListener('resize', () => this.scaleStage());
+      }
+
+      scaleStage() {
+        const factor = Math.min(window.innerWidth / 1920, window.innerHeight / 1080);
+        const x = (window.innerWidth - 1920 * factor) / 2;
+        const y = (window.innerHeight - 1080 * factor) / 2;
+        this.stage.style.transform = `translate(${x}px, ${y}px) scale(${factor})`;
+      }
+
+      show(index) {
+        this.current = Math.max(0, Math.min(index, this.slides.length - 1));
+        this.slides.forEach((slide, i) => {
+          slide.classList.toggle('active', i === this.current);
+          slide.classList.toggle('visible', i === this.current);
+        });
+        document.getElementById('counter').textContent = `${String(this.current + 1).padStart(2, '0')} / ${String(this.slides.length).padStart(2, '0')}`;
+        document.body.classList.remove('show-notes');
+      }
+
+      bindNavigation() {
+        document.getElementById('prev').addEventListener('click', () => this.show(this.current - 1));
+        document.getElementById('next').addEventListener('click', () => this.show(this.current + 1));
+        document.getElementById('full').addEventListener('click', () => {
+          document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen();
+        });
+
+        document.addEventListener('keydown', event => {
+          if (event.target.isContentEditable) return;
+          if (['ArrowRight', 'PageDown', ' '].includes(event.key)) {
+            event.preventDefault();
+            this.show(this.current + 1);
+          }
+          if (['ArrowLeft', 'PageUp'].includes(event.key)) {
+            event.preventDefault();
+            this.show(this.current - 1);
+          }
+        });
+
+        document.addEventListener('touchstart', event => {
+          this.touchStartX = event.changedTouches[0].screenX;
+        }, { passive: true });
+        document.addEventListener('touchend', event => {
+          if (this.touchStartX === null) return;
+          const delta = event.changedTouches[0].screenX - this.touchStartX;
+          if (Math.abs(delta) > 55) this.show(this.current + (delta < 0 ? 1 : -1));
+          this.touchStartX = null;
+        }, { passive: true });
+
+        document.addEventListener('wheel', event => {
+          if (this.wheelLocked || Math.abs(event.deltaY) < 25) return;
+          this.wheelLocked = true;
+          this.show(this.current + (event.deltaY > 0 ? 1 : -1));
+          window.setTimeout(() => { this.wheelLocked = false; }, 650);
+        }, { passive: true });
+      }
+    }
+
+    /* ===========================================
+       INLINE EDITING
+       =========================================== */
+    class InlineEditor {
+      constructor() {
+        this.isActive = false;
+        this.storageKey = 'dataset-exploration-simplified-v1';
+        this.editables = [...document.querySelectorAll('[data-editable]')];
+        this.restore();
+        this.bind();
+      }
+
+      toggle() {
+        this.isActive = !this.isActive;
+        document.body.classList.toggle('editing', this.isActive);
+        document.getElementById('editTools').classList.toggle('active', this.isActive);
+        this.editables.forEach(element => {
+          element.contentEditable = this.isActive ? 'true' : 'false';
+        });
+        if (!this.isActive) this.persist();
+      }
+
+      persist() {
+        const content = this.editables.map(element => element.innerHTML);
+        localStorage.setItem(this.storageKey, JSON.stringify(content));
+      }
+
+      restore() {
+        try {
+          const content = JSON.parse(localStorage.getItem(this.storageKey));
+          if (Array.isArray(content) && content.length === this.editables.length) {
+            this.editables.forEach((element, i) => { element.innerHTML = content[i]; });
+          }
+        } catch (error) {
+          console.warn('Saved edits could not be restored.', error);
+        }
+      }
+
+      download() {
+        this.persist();
+        document.body.classList.remove('editing', 'show-notes');
+        this.editables.forEach(element => element.removeAttribute('contenteditable'));
+        const html = '<!doctype html>\n' + document.documentElement.outerHTML;
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(new Blob([html], { type: 'text/html' }));
+        link.download = '01_Exploration_of_Dataset_数据集介绍与预处理_精简版_edited.html';
+        link.click();
+        URL.revokeObjectURL(link.href);
+        if (this.isActive) this.toggle();
+      }
+
+      bind() {
+        document.getElementById('editBtn').addEventListener('click', () => this.toggle());
+        document.getElementById('notesBtn').addEventListener('click', () => document.body.classList.toggle('show-notes'));
+        document.getElementById('saveBtn').addEventListener('click', () => this.download());
+        this.editables.forEach(element => element.addEventListener('blur', () => this.persist()));
+
+        document.addEventListener('keydown', event => {
+          if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 's') {
+            event.preventDefault();
+            this.download();
+            return;
+          }
+          if (event.target.isContentEditable) return;
+          if (event.key.toLowerCase() === 'e') this.toggle();
+          if (event.key.toLowerCase() === 'n') document.body.classList.toggle('show-notes');
+        });
+      }
+    }
+
+    const presentation = new SlidePresentation();
+    const editor = new InlineEditor();
+
+    /* Editing tools use a hover grace period so the controls remain clickable. */
+    const hotzone = document.querySelector('.edit-hotzone');
+    const editTools = document.getElementById('editTools');
+    let hideTimeout = null;
+
+    hotzone.addEventListener('mouseenter', () => {
+      clearTimeout(hideTimeout);
+      editTools.classList.add('show');
+    });
+    hotzone.addEventListener('mouseleave', () => {
+      hideTimeout = setTimeout(() => {
+        if (!editor.isActive) editTools.classList.remove('show');
+      }, 400);
+    });
+    hotzone.addEventListener('click', () => editor.toggle());
+    editTools.addEventListener('mouseenter', () => clearTimeout(hideTimeout));
+    editTools.addEventListener('mouseleave', () => {
+      hideTimeout = setTimeout(() => {
+        if (!editor.isActive) editTools.classList.remove('show');
+      }, 400);
+    });
+  </script>
+</body>
+</html>
