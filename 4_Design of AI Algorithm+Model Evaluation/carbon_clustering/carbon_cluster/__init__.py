@@ -1,2 +1,0 @@
-"""Carbon trajectory clustering package."""
-
